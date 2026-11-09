@@ -210,7 +210,7 @@ function ViewerGate(){const {user,loading}=useSession();if(!hasSupabase)return <
 export default function App(){
  const data=useData()
  return <Routes>
-  <Route path="/" element={<Dashboard data={data} full/>}/>
+  <Route path="/" element={<ViewerGate/>}/>
   <Route path="/admin/login" element={<Login role="admin"/>}/>
   <Route path="/viewer/login" element={<Login role="viewer"/>}/>
   <Route path="/viewer" element={<ViewerGate/>}/>
