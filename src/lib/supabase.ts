@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = (
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-) as string | undefined
+// Configuração pública do projeto Supabase.
+// A chave sb_publishable_ é própria para uso no frontend.
+// Nunca substituir por service_role ou sb_secret_.
+const url = 'https://zlmmcczxinvdzrjshbcl.supabase.co'
+const key = 'sb_publishable_T8-Zzov_cGYlxZjeK9yI4Q_eT1W7YWR'
 
-export const hasSupabase = Boolean(url && key && !url.includes('YOUR_PROJECT'))
-export const supabase = hasSupabase
-  ? createClient(url!, key!)
-  : null
+export const hasSupabase = Boolean(url && key)
+export const supabase = createClient(url, key)
