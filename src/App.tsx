@@ -268,7 +268,7 @@ function Admin(){
     finish(XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:true}))
    }).catch(e=>setParseError(e instanceof Error?e.message:'Falha ao ler o arquivo Excel.'))
   }else{
-   Papa.parse<Record<string,unknown>>(f,{header:true,delimiter:'',skipEmptyLines:'greedy',complete:r=>{if(r.errors.length){setParseError('Falha ao interpretar o CSV na linha '+(r.errors[0].row+2)+': '+r.errors[0].message);return}finish(r.data)},error:e=>setParseError(e.message)})
+   Papa.parse<Record<string,unknown>>(f,{header:true,delimiter:'',skipEmptyLines:'greedy',complete:r=>{const firstError=r.errors[0];if(firstError){setParseError('Falha ao interpretar o CSV na linha '+((firstError.row??0)+2)+': '+firstError.message);return}finish(r.data)},error:e=>setParseError(e.message)})
   }
  }
  async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');setParseError('');try{
