@@ -6,7 +6,7 @@ import {
   Trophy, TrendingUp, ShoppingBag, Target, Star, Lightbulb, Medal,
   Upload, Users, LogOut, LayoutDashboard, CalendarDays, Plus, Monitor,
   RefreshCw, ChevronRight, Sparkles, ShieldCheck, AlertCircle, CheckCircle2,
-  Crown, Award, ArrowUpRight, Settings, ImagePlus, X
+  Crown, ArrowUpRight, ImagePlus, X
 } from 'lucide-react'
 import { supabase, hasSupabase } from './lib/supabase'
 
@@ -138,13 +138,11 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  const allMonth=monthRows.reduce((n,r)=>n+r.revenue,0),allDay=dayRows.reduce((n,r)=>n+r.revenue,0),count=monthRows.reduce((n,r)=>n+r.count,0)
  const goal=data.goals.find(g=>g.month===monthKey(date))||defaultGoal
  const progress=goal.monthly_target?Math.min(100,allMonth/Number(goal.monthly_target)*100):0
- const perSeller=rows.length||1
  const ideas=data.recognitions.filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at))
  const [ideaIndex,setIdeaIndex]=useState(0)
  useEffect(()=>{if(ideas.length<2)return;const t=setInterval(()=>setIdeaIndex(i=>(i+1)%ideas.length),6500);return()=>clearInterval(t)},[ideas.length])
  const currentIdea=ideas.length?ideas[ideaIndex%ideas.length]:null
  const recognitionSeller=currentIdea?data.sellers.find(s=>s.id===currentIdea.seller_id):null
- const best=monthRows[0]
  return <div className={full?'dashboard full-dashboard':'dashboard'}>
   <Header/><DemoNotice/>
   <main className="dash-main">
@@ -188,7 +186,7 @@ function Admin(){
  async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');try{
   const unique=[...new Map(preview.map(r=>[(r.email||r.vendedora.toLowerCase()).toLowerCase(),r])).values()]
   const sellerMap=new Map<string,string>()
-  for(const row of unique){let query=supabase.from('sellers').select('id').limit(1);query=row.email?query.eq('email',row.email):query.ilike('full_name',row.vendedora);const {data,error}=await query.maybeSingle();if(error)throw error;let id=data?.id as string|undefined;if(!id){const {data:created,error:e}=await supabase.from('sellers').insert({full_name:row.vendedora,email:row.email||null}).select('id').single();if(e)throw e;id=created.id}else{const {error:e}=await supabase.from('sellers').update({full_name:row.vendedora}).eq('id',id);if(e)throw e}sellerMap.set((row.email||row.vendedora.toLowerCase()).toLowerCase(),id)}
+  for(const row of unique){let query=supabase.from('sellers').select('id').limit(1);query=row.email?query.eq('email',row.email):query.ilike('full_name',row.vendedora);const {data,error}=await query.maybeSingle();if(error)throw error;let id=data?.id as string|undefined;if(!id){const {data:created,error:e}=await supabase.from('sellers').insert({full_name:row.vendedora,email:row.email||null}).select('id').single();if(e)throw e;id=created.id}else{const {error:e}=await supabase.from('sellers').update({full_name:row.vendedora}).eq('id',id);if(e)throw e}if(!id)throw new Error('Não foi possível identificar ou cadastrar a colaboradora: '+row.vendedora);sellerMap.set((row.email||row.vendedora.toLowerCase()).toLowerCase(),id)}
   for(const row of preview){const id=sellerMap.get((row.email||row.vendedora.toLowerCase()).toLowerCase());if(!id)continue;const {error}=await supabase.from('sales_daily').upsert({seller_id:id,sale_date:row.data,revenue:Number(row.valor),sales_count:Math.round(Number(row.vendas)),source:'csv'}, {onConflict:'seller_id,sale_date'});if(error)throw error}
   setMessage('Importação concluída. Registros da mesma vendedora e data foram atualizados sem duplicidade.');setPreview([]);setFile(null);await data.load()
  }catch(e){setParseError(e instanceof Error?e.message:'Falha na importação.')}finally{setSaving(false)}}
