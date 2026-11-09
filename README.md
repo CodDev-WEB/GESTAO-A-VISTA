@@ -1,41 +1,84 @@
 # Gestão à Vista
 
-Aplicação web para gestão de desempenho comercial, com painel público para TV e área administrativa independente.
+Aplicação web para acompanhamento de desempenho comercial, com painel de visualização para TV e área administrativa protegida por autenticação independente.
 
-## Visão geral
-- **Painel de visualização**: ranking diário, semanal e mensal, metas, faturamento, ticket médio, quantidade de vendas, pódio e mural rotativo de boas práticas.
-- **Administração**: cadastro de colaboradoras, configuração de metas, importação diária CSV, fotos, estrelas e boas práticas.
-- **Persistência**: Supabase (Postgres, Auth e Storage).
-- **Interface**: React + TypeScript + Vite.
+## Funcionalidades
+- Painel com metas, faturamento, ticket médio, vendas, pódio e ranking.
+- Filtros diário, semanal e mensal.
+- Mural rotativo de boas práticas e ideias implementadas.
+- Administração de colaboradoras, fotos, metas e reconhecimentos.
+- Importação de vendas por CSV com prévia e atualização por colaboradora/data.
+- Persistência em Supabase (Postgres, Auth e Storage).
 
-## Configuração
-1. Instale Node.js 20+.
+## Configuração local
+1. Use Node.js 20 ou superior.
 2. Execute `npm install`.
-3. Copie `.env.example` para `.env.local` e informe `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (ou a variável legada `VITE_SUPABASE_ANON_KEY`).
-4. Execute o SQL de `supabase/schema.sql` no SQL Editor do Supabase.
-5. Crie usuários no Supabase Auth. Cadastre os perfis na tabela `profiles` com papel `admin` ou `viewer`.
-6. Execute `npm run dev`.
+3. Copie `.env.example` para `.env.local`.
+4. Preencha as variáveis:
+   ```env
+   VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_sb_publishable
+   ```
+   A chave publicável pode estar no frontend; nunca use `service_role` ou `sb_secret_` no navegador.
+5. No SQL Editor do Supabase, execute o arquivo completo `supabase/schema.sql`.
+6. Em Authentication > Users, crie as contas com e-mail e senha.
+7. Cadastre os perfis correspondentes na tabela `public.profiles`. Exemplo para a conta administrativa:
+   ```sql
+   insert into public.profiles (id, full_name, role, active)
+   select id, 'Larissa', 'admin', true
+   from auth.users
+   where email = 'larissa@yup.com'
+   on conflict (id) do update
+   set full_name = excluded.full_name,
+       role = excluded.role,
+       active = true;
+   ```
+   Para colaboradoras, use o papel `viewer`.
+8. Execute `npm run dev`.
+
+## Cloudflare Pages
+Configure o projeto no Cloudflare Pages com estes parâmetros:
+
+| Configuração | Valor |
+|---|---|
+| Framework preset | Vite |
+| Root directory | `/` (raiz do repositório) |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Node.js | 20 ou superior |
+
+Em Settings > Environment variables, cadastre **nos ambientes Production e Preview**:
+- `VITE_SUPABASE_URL` = URL do projeto Supabase.
+- `VITE_SUPABASE_PUBLISHABLE_KEY` = chave `sb_publishable_` do projeto.
+
+Depois de salvar as variáveis, inicie um novo deploy (Retry deployment ou novo commit). O arquivo `public/_redirects` garante o fallback do React Router para as rotas internas, evitando erro 404 ao abrir diretamente `/admin/login` ou `/viewer/login`.
+
+O endereço `*.pages.dev` é fornecido pelo Cloudflare após a criação do projeto e um deploy bem-sucedido; ele não é definido no código.
 
 ## Rotas
-- `/`: painel público (rota de TV).
+- `/`: encaminha para o acesso do painel de visualização.
+- `/viewer/login`: login da equipe.
+- `/viewer/board`: painel da equipe, exige perfil ativo `viewer`.
 - `/admin/login`: login administrativo.
-- `/admin`: administração, protegida por papel `admin`.
-- `/viewer/login`: login independente da tela de visualização.
-- `/viewer`: visualização autenticada para colaboradoras.
+- `/admin`: administração, exige perfil ativo `admin`.
 
-O painel público de TV não exibe controles administrativos. Para uma TV sem interação, use a rota `/` em tela cheia. O login de visualização permite uma experiência identificada e separada.
+Configure em Supabase > Authentication > URL Configuration a URL publicada do Cloudflare como Site URL e inclua a URL publicada e os endereços de Preview necessários em Redirect URLs.
 
 ## Importação CSV
-Colunas aceitas: `data`, `vendedora`, `valor`, `vendas`. Opcional: `ticket_medio`, `email`.
-A identificação preferencial é pelo e-mail; sem e-mail, utiliza o nome normalizado. Reimportar o mesmo arquivo substitui os registros da mesma colaboradora na mesma data, evitando duplicidade. Revise os dados no preview antes de confirmar.
+Cabeçalhos obrigatórios: `data`, `vendedora`, `valor`, `vendas`. Cabeçalhos opcionais: `email`, `ticket_medio`.
 
-## Regras do painel
-- Diário: vendas da data selecionada.
+- Datas aceitas: `AAAA-MM-DD` ou `DD/MM/AAAA`.
+- Valores aceitos: `1250,50`, `1.250,50`, `1250.50` ou com prefixo `R$`.
+- A importação identifica a colaboradora pelo e-mail (quando informado) ou pelo nome.
+- O banco atualiza o registro para a mesma colaboradora e data, evitando duplicidade. Se o arquivo trouxer mais de uma linha para a mesma colaboradora e data, consolide-as em uma única linha antes de importar.
+
+## Regras de cálculo
+- Diário: data selecionada.
 - Semanal: segunda-feira a domingo da semana selecionada.
 - Mensal: primeiro ao último dia do mês selecionado.
 - Ticket médio: faturamento dividido pela quantidade de vendas.
 - Progresso da meta: faturamento do mês dividido pela meta mensal.
-- Estrelas e boas práticas são atribuídas manualmente pelo administrador; não alteram o ranking financeiro.
+- Estrelas não alteram o ranking financeiro.
 
 ## Segurança
-As políticas RLS e as funções de autorização estão em `supabase/schema.sql`. Mantenha a chave `service_role` ou `sb_secret_` fora do frontend. A chave `sb_publishable_` é destinada ao cliente, mas o acesso aos dados continua dependendo das políticas RLS. Não use contas compartilhadas entre administração e visualização.
+O SQL aplica Row Level Security: usuários autenticados podem consultar os dados operacionais; somente administradores ativos podem inserir, alterar ou excluir dados. O painel exige perfil ativo e separa os papéis `admin` e `viewer`. O bucket de fotos é público para leitura no painel; operações de envio, atualização e exclusão exigem perfil administrador.
