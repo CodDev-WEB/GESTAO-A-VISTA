@@ -12,7 +12,7 @@ import {
 import { supabase, hasSupabase } from './lib/supabase'
 
 type Seller = { id:string; full_name:string; email:string|null; photo_url:string|null; active:boolean }
-type Sale = { id:string; seller_id:string; sale_date:string; revenue:number; sales_count:number }
+type Sale = { id:string; seller_id:string; sale_date:string; revenue:number; sales_count:number; gross_revenue?:number; refund_amount?:number }
 type Recognition = { id:string; seller_id:string; stars:number; kind:string; title:string; description:string; recognized_at:string }
 type Goal = { month:string; monthly_target:number; daily_target:number }
 type Profile = { id:string; full_name:string; role:'admin'|'viewer'; active:boolean }
@@ -164,7 +164,8 @@ function rankRows(sellers:Seller[],sales:Sale[],recognitions:Recognition[],perio
  return sellers.filter(s=>s.active).map(s=>{
   const rows=sales.filter(x=>x.seller_id===s.id&&x.sale_date>=start&&x.sale_date<=end)
   const revenue=rows.reduce((n,x)=>n+Number(x.revenue),0),count=rows.reduce((n,x)=>n+Number(x.sales_count),0)
-  return {seller:s,revenue,count,ticket:count?revenue/count:0,stars:recognitions.filter(x=>x.seller_id===s.id).reduce((n,x)=>n+x.stars,0)}
+  const grossRevenue=rows.reduce((n,x)=>n+Number(x.gross_revenue??Math.max(Number(x.revenue),0)),0)
+  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0,stars:recognitions.filter(x=>x.seller_id===s.id).reduce((n,x)=>n+x.stars,0)}
  }).sort((a,b)=>b.revenue-a.revenue)
 }
 function Podium({rows}:{rows:ReturnType<typeof rankRows>}){
@@ -278,13 +279,16 @@ function Admin(){
    if(!id)throw new Error('Não foi possível identificar ou cadastrar a colaboradora: '+row.vendedora)
    sellerMap.set(sellerKey(row),id)
   }
-  const totals=new Map<string,{seller_id:string;sale_date:string;revenue:number;sales_count:number}>()
+  const totals=new Map<string,{seller_id:string;sale_date:string;revenue:number;sales_count:number;gross_revenue:number;refund_amount:number}>()
   for(const row of preview){
    const id=sellerMap.get(sellerKey(row))
    if(!id)throw new Error('Colaboradora não identificada: '+row.vendedora)
+   const amount=Number(row.valor)
    const key=id+'|'+row.data
-   const current=totals.get(key)||{seller_id:id,sale_date:row.data,revenue:0,sales_count:0}
-   current.revenue+=Number(row.valor)
+   const current=totals.get(key)||{seller_id:id,sale_date:row.data,revenue:0,sales_count:0,gross_revenue:0,refund_amount:0}
+   current.revenue+=amount
+   if(amount>=0)current.gross_revenue+=amount
+   else current.refund_amount+=Math.abs(amount)
    current.sales_count+=Number(row.vendas)
    totals.set(key,current)
   }
