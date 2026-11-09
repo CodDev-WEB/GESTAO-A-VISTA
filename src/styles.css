@@ -1074,3 +1074,177 @@
  .full-dashboard > .dash-main { grid-template-rows: auto auto minmax(185px,.9fr) minmax(205px,1.1fr) !important; }
  .full-dashboard .recognition-highlight p { -webkit-line-clamp: 1; }
 }
+
+
+/* TV refinement: reduzir ruido visual e priorizar leitura a distancia */
+@media (min-width: 601px) {
+  .full-dashboard {
+    background: #f4f6f8 !important;
+    color: #172538 !important;
+  }
+  .full-dashboard .dash-main {
+    gap: 9px !important;
+    padding: 12px clamp(22px, 2.2vw, 42px) 10px !important;
+  }
+  .full-dashboard .welcome-line {
+    margin: 0 !important;
+    min-height: 48px !important;
+  }
+  .full-dashboard .welcome-line h1 {
+    margin: 3px 0 !important;
+    font-size: clamp(23px, 1.8vw, 31px) !important;
+  }
+  .full-dashboard .welcome-line p {
+    font-size: 11px !important;
+  }
+  .full-dashboard .overview-layout {
+    gap: 14px !important;
+  }
+  .full-dashboard .overview-metrics {
+    gap: 8px !important;
+  }
+  .full-dashboard .goal-progress,
+  .full-dashboard .metric-card,
+  .full-dashboard .podium-person,
+  .full-dashboard .table-wrap,
+  .full-dashboard .actions-ranking-section {
+    box-shadow: none !important;
+    border: 1px solid #e2e7ec !important;
+    border-radius: 9px !important;
+  }
+  .full-dashboard .goal-progress {
+    padding: 10px 13px !important;
+    margin: 0 !important;
+  }
+  .full-dashboard .goal-progress-head strong {
+    font-size: 18px !important;
+  }
+  .full-dashboard .progress-track {
+    height: 5px !important;
+    margin: 7px 0 !important;
+  }
+  .full-dashboard .progress-footer {
+    font-size: 9px !important;
+  }
+  .full-dashboard .metrics-grid {
+    gap: 8px !important;
+  }
+  .full-dashboard .metric-card {
+    padding: 10px 12px !important;
+    gap: 4px !important;
+  }
+  .full-dashboard .metric-icon {
+    width: 25px !important;
+    height: 25px !important;
+    margin: 0 !important;
+  }
+  .full-dashboard .metric-card > span {
+    font-size: 8px !important;
+    letter-spacing: .55px !important;
+  }
+  .full-dashboard .metric-card > strong {
+    font-size: clamp(17px, 1.35vw, 22px) !important;
+  }
+  .full-dashboard .metric-card > small {
+    font-size: 9px !important;
+  }
+  .full-dashboard .ranking-section,
+  .full-dashboard .table-section,
+  .full-dashboard .actions-ranking-section {
+    margin: 0 !important;
+    min-height: 0 !important;
+  }
+  .full-dashboard .section-head {
+    margin-bottom: 7px !important;
+  }
+  .full-dashboard .section-head h2 {
+    font-size: clamp(16px, 1.15vw, 19px) !important;
+  }
+  .full-dashboard .eyebrow,
+  .full-dashboard .period-tag,
+  .full-dashboard .subtle-count {
+    font-size: 8px !important;
+    letter-spacing: .7px !important;
+  }
+  .full-dashboard .podium {
+    gap: 8px !important;
+    padding-top: 3px !important;
+  }
+  .full-dashboard .podium-person,
+  .full-dashboard .podium-person.place-1 {
+    min-height: 145px !important;
+    padding: 8px 7px 0 !important;
+  }
+  .full-dashboard .podium-person > strong {
+    font-size: 10px !important;
+    text-align: center !important;
+  }
+  .full-dashboard .podium-person > b {
+    font-size: 13px !important;
+  }
+  .full-dashboard .podium-base {
+    height: 21px !important;
+  }
+  .full-dashboard .rankings-layout {
+    gap: 12px !important;
+  }
+  .full-dashboard .rankings-layout > .table-section,
+  .full-dashboard .rankings-layout > .actions-ranking-section {
+    background: #fff !important;
+    border: 1px solid #e2e7ec !important;
+    border-radius: 9px !important;
+    padding: 10px 12px !important;
+    min-width: 0 !important;
+  }
+  .full-dashboard .table-wrap {
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+  .full-dashboard .rankings-layout th {
+    background: #f7f9fa !important;
+    padding: 7px 8px !important;
+    font-size: 8px !important;
+  }
+  .full-dashboard .rankings-layout td {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+  .full-dashboard .rankings-layout .seller-cell {
+    gap: 6px !important;
+  }
+  .full-dashboard .rankings-layout .seller-cell .avatar,
+  .full-dashboard .action-ranking-row > .avatar {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 8px !important;
+  }
+  .full-dashboard .actions-ranking-list {
+    gap: 0 !important;
+  }
+  .full-dashboard .action-ranking-row {
+    min-height: 31px !important;
+    padding: 4px 2px !important;
+    border-bottom: 1px solid #edf0f2 !important;
+    grid-template-columns: 23px 25px minmax(0,1fr) auto !important;
+    gap: 6px !important;
+  }
+  .full-dashboard .action-ranking-row > strong {
+    font-size: 10px !important;
+  }
+  .full-dashboard .action-ranking-row > small {
+    display: none !important;
+  }
+  .full-dashboard .action-stars {
+    font-size: 10px !important;
+    color: #b88625 !important;
+  }
+  .full-dashboard .action-stars svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+  /* O ranking já mostra a pontuação; detalhes recentes ficam no admin,
+     evitando um segundo bloco concorrendo com os rankings na TV. */
+  .full-dashboard .recognition-highlights {
+    display: none !important;
+  }
+}
