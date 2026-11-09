@@ -182,7 +182,7 @@ function rankRows(sellers:Seller[],sales:Sale[],recognitions:Recognition[],perio
  }).sort((a,b)=>b.revenue-a.revenue)
 }
 function Podium({rows}:{rows:ReturnType<typeof rankRows>}){
- const ordered=[rows[1],rows[0],rows[2]].filter(Boolean)
+ const ordered=rows.slice(0,3)
  return <div className="podium">{ordered.map((r,i)=>{const rank=i===1?1:i===0?2:3;return <div className={'podium-person place-'+rank} key={r.seller.id}><div className="podium-crown">{rank===1?<Crown/>:<Medal/>}</div><div className="podium-avatar"><Avatar seller={r.seller} size={rank===1?'xl':'lg'} index={rank}/><span className="podium-rank">{rank}</span></div><strong>{r.seller.full_name}</strong><b>{money(r.revenue)}</b><small>{r.count} vendas</small><div className="podium-base"><span>{rank===1?'1º LUGAR':rank===2?'2º LUGAR':'3º LUGAR'}</span></div></div>})}</div>
 }
 function periodText(p:Period){return p==='day'?'HOJE':p==='week'?'ESTA SEMANA':'ESTE MÊS'}
