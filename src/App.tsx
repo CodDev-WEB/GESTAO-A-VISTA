@@ -229,7 +229,6 @@ function Guard({children,role}:{children:ReactNode;role:'admin'|'viewer'}){
  if(!user)return <Navigate to={role==='admin'?'/admin/login':'/viewer/login'} replace/>
  if(!profile?.active)return <div className="loading-screen"><div>Acesso não liberado.<br/>{profileError||'O perfil está inativo ou não foi encontrado.'}<br/>E-mail da sessão: {user.email||'não disponível'}</div></div>
  if(role==='admin'&&profile.role!=='admin')return <Navigate to="/viewer" replace/>
- if(role==='viewer'&&profile.role!=='viewer')return <Navigate to="/admin" replace/>
  return <>{children}</>
 }
 function Admin(){
