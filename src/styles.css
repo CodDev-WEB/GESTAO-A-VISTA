@@ -1332,3 +1332,272 @@
 @media (max-width: 600px) {
   .full-dashboard > .topbar { display: none !important; }
 }
+
+
+/* TV 100% viewport: fit every dashboard block without horizontal clipping */
+@media (min-width: 601px) and (orientation: landscape) {
+  html, body, #root { width: 100%; min-width: 0; height: 100%; margin: 0; overflow: hidden; }
+  .full-dashboard {
+    width: 100%;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .full-dashboard > .topbar { display: none !important; }
+  .full-dashboard > .demo-notice,
+  .full-dashboard > .error-box { display: none !important; }
+  .full-dashboard > .dash-main {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    flex: 1 1 100% !important;
+    margin: 0 !important;
+    padding: clamp(8px, 1.25vh, 16px) clamp(12px, 1.6vw, 28px) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto minmax(0, .95fr) minmax(0, 1.05fr) !important;
+    gap: clamp(6px, .85vh, 11px) !important;
+    overflow: hidden !important;
+    align-content: stretch !important;
+  }
+  .full-dashboard > .dash-main > .welcome-line,
+  .full-dashboard > .dash-main > .period-row,
+  .full-dashboard > .dash-main > .overview-layout,
+  .full-dashboard > .dash-main > .rankings-layout {
+    grid-column: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  .full-dashboard > .dash-main > .welcome-line {
+    grid-row: 1 !important;
+    align-items: center !important;
+    min-height: 0 !important;
+  }
+  .full-dashboard .welcome-line h1 {
+    font-size: clamp(19px, 1.75vw, 29px) !important;
+    line-height: 1.1 !important;
+  }
+  .full-dashboard .welcome-line p { font-size: clamp(9px, .72vw, 12px) !important; }
+  .full-dashboard > .dash-main > .period-row {
+    grid-row: 2 !important;
+    min-height: 0 !important;
+    gap: 8px !important;
+  }
+  .full-dashboard .period-tabs button {
+    padding: clamp(5px, .7vh, 8px) clamp(9px, 1vw, 15px) !important;
+  }
+  .full-dashboard > .dash-main > .overview-layout {
+    grid-row: 3 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: clamp(8px, 1vw, 15px) !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .overview-metrics {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: clamp(5px, .7vh, 9px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .goal-progress {
+    grid-column: 1 !important;
+    min-width: 0 !important;
+    padding: clamp(7px, .9vh, 12px) clamp(9px, 1vw, 15px) !important;
+    margin: 0 !important;
+  }
+  .full-dashboard .goal-progress-head { gap: 8px !important; flex-wrap: wrap !important; }
+  .full-dashboard .goal-progress-head strong { font-size: clamp(15px, 1.25vw, 20px) !important; }
+  .full-dashboard .goal-progress-head > span { font-size: clamp(9px, .75vw, 12px) !important; }
+  .full-dashboard .progress-track { height: 5px !important; margin: 6px 0 !important; }
+  .full-dashboard .progress-footer { font-size: clamp(8px, .62vw, 10px) !important; gap: 6px !important; }
+  .full-dashboard .metrics-grid {
+    grid-column: 1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    gap: clamp(5px, .7vw, 10px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .metric-card {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: clamp(7px, .9vh, 12px) clamp(8px, .9vw, 13px) !important;
+    gap: 3px !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .metric-card > span {
+    font-size: clamp(8px, .66vw, 11px) !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+  }
+  .full-dashboard .metric-card > strong {
+    font-size: clamp(15px, 1.35vw, 22px) !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+  .full-dashboard .metric-card > small { font-size: clamp(8px, .62vw, 10px) !important; }
+  .full-dashboard > .dash-main > .overview-layout > .ranking-section {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
+  .full-dashboard .ranking-section .section-head { flex: 0 0 auto !important; margin: 0 0 5px !important; }
+  .full-dashboard .ranking-section .section-head h2 { font-size: clamp(15px, 1.2vw, 20px) !important; }
+  .full-dashboard .ranking-section .podium {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-width: none !important;
+    gap: clamp(5px, .7vw, 10px) !important;
+    padding: 3px 2px 5px !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .podium-person,
+  .full-dashboard .podium-person.place-1 {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    padding: clamp(5px, .8vh, 11px) 4px 25px !important;
+    gap: clamp(3px, .55vh, 7px) !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .podium-person > strong {
+    max-width: 100% !important;
+    font-size: clamp(9px, .72vw, 12px) !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+  .full-dashboard .podium-person > b { font-size: clamp(11px, 1vw, 16px) !important; }
+  .full-dashboard .podium-person > small { font-size: clamp(8px, .62vw, 10px) !important; }
+  .full-dashboard .podium-base {
+    position: absolute !important;
+    left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100% !important;
+    height: 22px !important;
+    margin: 0 !important;
+    font-size: clamp(7px, .56vw, 9px) !important;
+  }
+  .full-dashboard > .dash-main > .rankings-layout {
+    grid-row: 4 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, .95fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: clamp(7px, .9vw, 13px) !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .rankings-layout > .table-section,
+  .full-dashboard .rankings-layout > .actions-ranking-section {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: clamp(7px, .8vh, 11px) clamp(8px, .85vw, 13px) !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    border: 1px solid #e2e7ec !important;
+    border-radius: 9px !important;
+  }
+  .full-dashboard .rankings-layout .section-head { margin: 0 0 4px !important; }
+  .full-dashboard .rankings-layout .section-head h2 { font-size: clamp(14px, 1.05vw, 18px) !important; }
+  .full-dashboard .rankings-layout .table-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+  }
+  .full-dashboard .rankings-layout table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    white-space: normal !important;
+  }
+  .full-dashboard .rankings-layout th,
+  .full-dashboard .rankings-layout td {
+    padding: clamp(3px, .45vh, 6px) clamp(3px, .45vw, 7px) !important;
+    font-size: clamp(8px, .62vw, 10px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .full-dashboard .rankings-layout th:nth-child(1) { width: 8% !important; }
+  .full-dashboard .rankings-layout th:nth-child(2) { width: 34% !important; }
+  .full-dashboard .rankings-layout th:nth-child(3) { width: 23% !important; }
+  .full-dashboard .rankings-layout th:nth-child(4) { width: 13% !important; }
+  .full-dashboard .rankings-layout th:nth-child(5) { width: 22% !important; }
+  .full-dashboard .rankings-layout .seller-cell { min-width: 0 !important; gap: 4px !important; }
+  .full-dashboard .rankings-layout .seller-cell .avatar { width: 20px !important; height: 20px !important; }
+  .full-dashboard .rankings-layout .seller-cell strong { min-width: 0 !important; font-size: clamp(8px, .62vw, 10px) !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+  .full-dashboard .rankings-layout .leader-chip { display: none !important; }
+  .full-dashboard .rankings-layout .actions-ranking-list {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row {
+    min-width: 0 !important;
+    min-height: clamp(25px, 4vh, 38px) !important;
+    padding: 3px 1px !important;
+    display: grid !important;
+    grid-template-columns: 20px 22px minmax(0,1fr) auto !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > strong { min-width: 0 !important; font-size: clamp(8px, .62vw, 10px) !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+  .full-dashboard .rankings-layout .action-ranking-row > .avatar { width: 21px !important; height: 21px !important; }
+  .full-dashboard .rankings-layout .action-ranking-row > .action-stars { white-space: nowrap !important; font-size: clamp(8px, .6vw, 10px) !important; }
+  .full-dashboard .rankings-layout .action-ranking-row > .action-stars svg { width: 9px !important; height: 9px !important; }
+  .full-dashboard .rankings-layout .action-ranking-row > small { display: none !important; }
+  .full-dashboard .recognition-highlights,
+  .full-dashboard .ideas-section,
+  .full-dashboard .dash-footer { display: none !important; }
+}
+@media (min-width: 601px) and (orientation: portrait) {
+  .full-dashboard { width: 100%; height: auto !important; min-height: 100dvh !important; max-height: none !important; overflow: visible !important; }
+  .full-dashboard > .dash-main {
+    width: 100% !important; height: auto !important; min-height: 100dvh !important;
+    display: grid !important; grid-template-columns: minmax(0,1fr) !important;
+    grid-template-rows: auto auto auto auto !important;
+    overflow: visible !important; padding: 14px !important;
+  }
+  .full-dashboard > .dash-main > * { grid-column: 1 !important; min-width: 0 !important; }
+  .full-dashboard > .dash-main > .overview-layout {
+    display: grid !important; grid-template-columns: minmax(0,1fr) !important;
+    grid-template-rows: auto auto !important; overflow: visible !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section { min-height: 270px !important; }
+  .full-dashboard .overview-layout > .ranking-section .podium { min-height: 220px !important; }
+  .full-dashboard > .dash-main > .rankings-layout {
+    display: grid !important; grid-template-columns: minmax(0,1fr) !important;
+    grid-template-rows: auto auto !important; overflow: visible !important;
+  }
+}
