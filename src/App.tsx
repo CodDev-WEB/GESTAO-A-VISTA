@@ -19,6 +19,18 @@ type Profile = { id:string; full_name:string; role:'admin'|'viewer'; active:bool
 type Period = 'day'|'week'|'month'
 type ImportRow = { data:string; vendedora:string; valor:number|string; vendas:number|string; email?:string }
 
+const normalizeHeader = (value:unknown) => String(value??'').replace(/^\\uFEFF/,'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\\s+/g,' ')
+const parseImportAmount = (value:unknown):number|string => {
+ if(typeof value==='number')return Number.isFinite(value)?value:''
+ const raw=String(value??'').trim()
+ if(!raw)return ''
+ let s=raw.replace(/R\\$/gi,'').replace(/\\s/g,'')
+ if(s.includes(',')&&s.includes('.'))s=s.replace(/\\./g,'').replace(',','.')
+ else if(s.includes(','))s=s.replace(',','.')
+ const n=Number(s)
+ return Number.isFinite(n)?n:''
+}
+
 const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0})
 const exactMoney = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
 const today = () => new Date().toLocaleDateString('en-CA')
