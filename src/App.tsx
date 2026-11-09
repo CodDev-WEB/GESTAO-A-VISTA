@@ -212,11 +212,6 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  useEffect(()=>{setActionStep(0)},[actionRanking.length,period,date,endDate])
  useEffect(()=>{if(!full||actionMaxStart===0)return;const timer=window.setInterval(()=>setActionStep(v=>v>=2*actionMaxStart?0:v+1),3000);return()=>clearInterval(timer)},[full,actionMaxStart])
  const visibleActionRows=full?actionRanking.slice(actionStart,actionStart+actionPageSize):actionRanking
- const ideas=data.recognitions.filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at))
- const [ideaIndex,setIdeaIndex]=useState(0)
- useEffect(()=>{if(ideas.length<2)return;const t=setInterval(()=>setIdeaIndex(i=>(i+1)%ideas.length),6500);return()=>clearInterval(t)},[ideas.length])
- const currentIdea=ideas.length?ideas[ideaIndex%ideas.length]:null
- const recognitionSeller=currentIdea?data.sellers.find(s=>s.id===currentIdea.seller_id):null
  const [rankingStep,setRankingStep]=useState(0)
  const rankingPageSize=6
  const rankingMaxStart=Math.max(0,rows.length-rankingPageSize)
