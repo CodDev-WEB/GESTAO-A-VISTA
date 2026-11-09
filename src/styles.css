@@ -412,3 +412,36 @@
 .full-dashboard .ranking-stars svg{flex-basis:11px;width:11px;height:11px}
 .full-dashboard .ranking-stars b{font-size:9px}
 .full-dashboard .table-wrap th:last-child,.full-dashboard .table-wrap td:last-child{display:table-cell!important;visibility:visible!important}
+
+
+/* TV overview: compact goal progress and metrics on the left, podium on the right */
+.full-dashboard>.dash-main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1.05fr) minmax(0,.95fr) auto;row-gap:clamp(7px,.9vh,11px)}
+.full-dashboard .overview-layout{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(12px,1.6vw,24px);min-width:0;min-height:0;overflow:hidden}
+.full-dashboard .overview-metrics{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
+.full-dashboard .overview-metrics .goal-progress{flex:none;margin:0;padding:7px 11px}
+.full-dashboard .overview-metrics .goal-progress-head strong{font-size:clamp(16px,1.25vw,20px)}
+.full-dashboard .overview-metrics .progress-track{height:5px;margin:5px 0}
+.full-dashboard .overview-metrics .progress-footer{font-size:clamp(8px,.62vw,10px)}
+.full-dashboard .overview-metrics .metrics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px;flex:1;min-height:0}
+.full-dashboard .overview-metrics .metric-card{padding:clamp(7px,.85vh,11px) clamp(9px,.9vw,13px);gap:3px;justify-content:center;min-height:0}
+.full-dashboard .overview-metrics .metric-icon{width:23px;height:23px}
+.full-dashboard .overview-metrics .metric-icon svg{width:13px;height:13px}
+.full-dashboard .overview-metrics .metric-card>span{font-size:clamp(8px,.65vw,10px)}
+.full-dashboard .overview-metrics .metric-card>strong{font-size:clamp(16px,1.35vw,22px)}
+.full-dashboard .overview-metrics .metric-card>small{font-size:clamp(8px,.62vw,10px)}
+.full-dashboard .overview-layout>.ranking-section{grid-column:2;grid-row:1;margin:0;min-width:0;min-height:0;overflow:hidden}
+.full-dashboard .overview-layout>.ranking-section .podium{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(5px,.7vw,10px)}
+.full-dashboard .overview-layout>.ranking-section .podium-person,
+.full-dashboard .overview-layout>.ranking-section .podium-person.place-1{height:auto;min-height:clamp(140px,22vh,205px);padding:8px 5px 0}
+.full-dashboard .table-section{grid-column:1/-1;grid-row:4;min-height:0}
+.full-dashboard .ideas-section{grid-column:1/-1;grid-row:5;min-height:0}
+.full-dashboard .ranking-section .section-head{margin-bottom:5px}
+.full-dashboard .overview-layout .section-head h2{font-size:clamp(15px,1.25vw,19px)}
+.full-dashboard .dash-footer{display:none!important}
+@media(max-width:900px){
+ .full-dashboard>.dash-main{grid-template-rows:auto auto auto minmax(0,1fr) auto;overflow-y:auto}
+ .full-dashboard .overview-layout{grid-template-columns:1fr;grid-row:auto;overflow:visible}
+ .full-dashboard .overview-layout>.ranking-section{grid-column:1;grid-row:auto}
+ .full-dashboard .table-section,.full-dashboard .ideas-section{grid-row:auto}
+ .full-dashboard .overview-metrics .metrics-grid{min-height:180px}
+}
