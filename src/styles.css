@@ -1248,3 +1248,87 @@
     display: none !important;
   }
 }
+
+
+/* Ajustes finais de legibilidade e responsividade do painel TV */
+@media (min-width: 601px) {
+  .full-dashboard { min-height: 100dvh !important; height: 100dvh !important; overflow: hidden !important; }
+  .full-dashboard > .topbar { display: none !important; }
+  .full-dashboard > .dash-main {
+    height: 100dvh !important;
+    grid-template-rows: auto auto minmax(220px, .92fr) minmax(210px, 1.08fr) !important;
+    padding: clamp(12px, 1.6vh, 24px) clamp(14px, 2vw, 36px) !important;
+    gap: clamp(8px, 1.1vh, 16px) !important;
+  }
+  .full-dashboard > .dash-main > .welcome-line { min-height: 0 !important; }
+  .full-dashboard > .dash-main > .overview-layout {
+    grid-template-columns: minmax(260px, .88fr) minmax(0, 1.12fr) !important;
+    overflow: visible !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section {
+    display: flex !important; flex-direction: column !important;
+    min-height: 0 !important; overflow: visible !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section .podium {
+    flex: 1 1 auto !important; height: auto !important; min-height: 0 !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: stretch !important; overflow: visible !important;
+    padding: 6px 3px 9px !important;
+  }
+  .full-dashboard .podium-person,
+  .full-dashboard .podium-person.place-1 {
+    box-sizing: border-box !important; height: auto !important; min-height: 0 !important;
+    padding: clamp(8px, 1.1vh, 16px) 7px 30px !important;
+    gap: clamp(4px, .65vh, 9px) !important; overflow: visible !important;
+    justify-content: center !important;
+  }
+  .full-dashboard .podium-crown { flex: 0 0 auto !important; }
+  .full-dashboard .podium-avatar { flex: 0 0 auto !important; }
+  .full-dashboard .podium-person > strong {
+    width: 100% !important; max-width: 100% !important;
+    white-space: normal !important; overflow-wrap: anywhere !important;
+    text-align: center !important; line-height: 1.2 !important;
+    font-size: clamp(10px, .82vw, 14px) !important;
+  }
+  .full-dashboard .podium-person > b { font-size: clamp(13px, 1.05vw, 18px) !important; }
+  .full-dashboard .podium-person > small { font-size: clamp(9px, .7vw, 12px) !important; }
+  .full-dashboard .podium-base { left: 0 !important; right: 0 !important; bottom: 0 !important; }
+  .full-dashboard .rankings-layout th,
+  .full-dashboard .rankings-layout td { white-space: nowrap !important; }
+}
+@media (min-width: 601px) and (max-width: 1100px) {
+  .full-dashboard > .dash-main { grid-template-rows: auto auto minmax(205px, .9fr) minmax(190px, 1.1fr) !important; }
+  .full-dashboard > .dash-main > .overview-layout { grid-template-columns: minmax(225px, .82fr) minmax(0, 1.18fr) !important; gap: 9px !important; }
+  .full-dashboard .podium-person,
+  .full-dashboard .podium-person.place-1 { padding-inline: 4px !important; }
+  .full-dashboard > .dash-main > .rankings-layout { grid-template-columns: minmax(0, 1.35fr) minmax(220px, .9fr) !important; }
+}
+@media (min-width: 601px) and (max-height: 720px) {
+  .full-dashboard > .dash-main { grid-template-rows: auto auto minmax(185px, .9fr) minmax(175px, 1.1fr) !important; padding-block: 7px !important; gap: 6px !important; }
+  .full-dashboard .podium-person,
+  .full-dashboard .podium-person.place-1 { padding-top: 5px !important; padding-bottom: 27px !important; gap: 3px !important; }
+  .full-dashboard .podium-crown svg { width: 15px !important; height: 15px !important; }
+}
+@media (orientation: portrait) and (min-width: 601px) {
+  .full-dashboard { overflow-y: auto !important; height: auto !important; min-height: 100dvh !important; }
+  .full-dashboard > .dash-main {
+    height: auto !important; min-height: 100dvh !important;
+    grid-template-rows: auto auto auto auto !important;
+    overflow: visible !important;
+  }
+  .full-dashboard > .dash-main > .overview-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important; overflow: visible !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section { min-height: 280px !important; }
+  .full-dashboard .overview-layout > .ranking-section .podium { min-height: 235px !important; }
+  .full-dashboard > .dash-main > .rankings-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important; overflow: visible !important;
+  }
+  .full-dashboard > .dash-main > .rankings-layout > .table-section,
+  .full-dashboard > .dash-main > .rankings-layout > .actions-ranking-section { min-height: 260px !important; }
+}
+@media (max-width: 600px) {
+  .full-dashboard > .topbar { display: none !important; }
+}
