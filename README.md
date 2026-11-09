@@ -68,9 +68,9 @@ A administração aceita os dois formatos:
 
 ## Configuração do Supabase
 
-1. No SQL Editor do Supabase, execute o arquivo completo `supabase/schema.sql`.
+1. No SQL Editor do Supabase, execute o arquivo completo `supabase/schema.sql`. Em instalações existentes, execute-o novamente para aplicar a migração de estornos e os novos campos de faturamento bruto e estornos.
 2. Em Authentication > Users, crie as contas de acesso.
-3. Cadastre cada usuário em `public.profiles), usando o mesmo UUID de `auth.users`. Para o administrador:
+3. Cadastre cada usuário em `public.profiles`, usando o mesmo UUID de `auth.users`. Para o administrador:
    ```sql
    insert into public.profiles (id, full_name, role, active)
    select id, 'Nome do administrador', 'admin', true
@@ -83,7 +83,7 @@ A administração aceita os dois formatos:
    ```
 4. Para contas da equipe, use o papel `viewer`.
 
-A URL e a chave publicável do Supabase estão configuradas em `src/lib/supabase.ts`. A chave `sb_publishable_` pode ser usada no frontend. Nunca use `service_role` ou `sb_secret_` no navegador.
+A URL e a chave publicável do Supabase estão configuradas em `src/lib/supabase.ts`. A importação de planilhas usa SheetJS 0.20.3 distribuído pelo canal oficial do projeto. A chave `sb_publishable_` pode ser usada no frontend. Nunca use `service_role` ou `sb_secret_` no navegador.
 
 ## Desenvolvimento local
 
@@ -122,4 +122,4 @@ Configure a URL pública do Worker em Supabase > Authentication > URL Configurat
 
 ## Banco de dados e segurança
 
-O arquivo `supabase/schema.sql` cria e atualiza as tabelas `profiles`, `sellers`, `goals`, `sales_daily` e `recognitions), o bucket `seller-photos), funções auxiliares e políticas RLS. Usuários autenticados podem consultar dados operacionais; somente administradores ativos podem alterar esses dados. As fotos são públicas para leitura e restritas para gravação a administradores.
+O arquivo `supabase/schema.sql` cria e atualiza as tabelas `profiles`, `sellers`, `goals`, `sales_daily` e `recognitions), o bucket `seller-photos`, funções auxiliares e políticas RLS. Usuários autenticados podem consultar dados operacionais; somente administradores ativos podem alterar esses dados. As fotos são públicas para leitura e restritas para gravação a administradores.
