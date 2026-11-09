@@ -33,7 +33,9 @@ create table if not exists public.sales_daily (
   id uuid primary key default gen_random_uuid(),
   seller_id uuid not null references public.sellers(id) on delete cascade,
   sale_date date not null,
-  revenue numeric(14,2) not null default 0 check (revenue >= 0),
+  revenue numeric(14,2) not null default 0,
+  gross_revenue numeric(14,2) not null default 0 check (gross_revenue >= 0),
+  refund_amount numeric(14,2) not null default 0 check (refund_amount >= 0),
   sales_count integer not null default 0 check (sales_count >= 0),
   source text not null default 'manual',
   import_key text,
@@ -51,6 +53,21 @@ create table if not exists public.recognitions (
   recognized_at date not null default current_date,
   created_at timestamptz not null default now()
 );
+
+
+-- Migração segura para instalações existentes: faturamento líquido pode ficar negativo
+-- quando há estornos. Mantém faturamento bruto e estornos separados para o ticket médio.
+alter table public.sales_daily drop constraint if exists sales_daily_revenue_check;
+alter table public.sales_daily add column if not exists gross_revenue numeric(14,2) not null default 0;
+alter table public.sales_daily add column if not exists refund_amount numeric(14,2) not null default 0;
+update public.sales_daily
+set gross_revenue = greatest(revenue, 0),
+    refund_amount = greatest(-revenue, 0)
+where gross_revenue = 0 and refund_amount = 0 and revenue <> 0;
+alter table public.sales_daily drop constraint if exists sales_daily_gross_revenue_check;
+alter table public.sales_daily add constraint sales_daily_gross_revenue_check check (gross_revenue >= 0);
+alter table public.sales_daily drop constraint if exists sales_daily_refund_amount_check;
+alter table public.sales_daily add constraint sales_daily_refund_amount_check check (refund_amount >= 0);
 
 create index if not exists sales_daily_date_idx on public.sales_daily(sale_date);
 create index if not exists sales_daily_seller_date_idx on public.sales_daily(seller_id, sale_date);
