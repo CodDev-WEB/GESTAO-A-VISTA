@@ -1,5 +1,6 @@
--- Gestão à Vista: schema inicial.
--- Execute no SQL Editor do Supabase antes de iniciar o frontend.
+-- Gestão à Vista: schema inicial e políticas de acesso.
+-- Execute todo este arquivo no SQL Editor do Supabase.
+-- O script pode ser executado novamente sem duplicar tabelas ou políticas.
 
 create extension if not exists pgcrypto;
 
@@ -37,7 +38,7 @@ create table if not exists public.sales_daily (
   source text not null default 'manual',
   import_key text,
   created_at timestamptz not null default now(),
-  unique (seller_id, sale_date)
+  constraint sales_daily_seller_date_key unique (seller_id, sale_date)
 );
 
 create table if not exists public.recognitions (
@@ -55,10 +56,10 @@ create index if not exists sales_daily_date_idx on public.sales_daily(sale_date)
 create index if not exists sales_daily_seller_date_idx on public.sales_daily(seller_id, sale_date);
 create index if not exists recognitions_date_idx on public.recognitions(recognized_at desc);
 
--- Foto das colaboradoras (bucket público para leitura no painel).
+-- Bucket público para que as fotos apareçam no painel da TV sem sessão.
 insert into storage.buckets (id, name, public)
 values ('seller-photos', 'seller-photos', true)
-on conflict (id) do nothing;
+on conflict (id) do update set public = excluded.public;
 
 create or replace function public.current_user_role()
 returns text
@@ -67,7 +68,8 @@ stable
 security definer
 set search_path = public
 as $$
-  select role from public.profiles
+  select role
+  from public.profiles
   where id = auth.uid() and active = true
   limit 1
 $$;
@@ -88,15 +90,19 @@ alter table public.goals enable row level security;
 alter table public.sales_daily enable row level security;
 alter table public.recognitions enable row level security;
 
--- Usuários autenticados ativos podem ler dados do painel.
+-- Perfis: cada usuário lê o próprio perfil; administradores gerenciam todos.
 drop policy if exists "profiles read self or admin" on public.profiles;
 create policy "profiles read self or admin" on public.profiles
-for select to authenticated using (id = auth.uid() or public.is_admin());
+for select to authenticated
+using (id = auth.uid() or public.is_admin());
 
 drop policy if exists "admins manage profiles" on public.profiles;
 create policy "admins manage profiles" on public.profiles
-for all to authenticated using (public.is_admin()) with check (public.is_admin());
+for all to authenticated
+using (public.is_admin())
+with check (public.is_admin());
 
+-- Dados operacionais: leitura autenticada e escrita exclusiva de administradores.
 drop policy if exists "authenticated read sellers" on public.sellers;
 create policy "authenticated read sellers" on public.sellers
 for select to authenticated using (true);
@@ -122,21 +128,34 @@ drop policy if exists "authenticated read recognitions" on public.recognitions;
 create policy "authenticated read recognitions" on public.recognitions
 for select to authenticated using (true);
 drop policy if exists "admins manage recognitions" on public.recognitions;
+create policy "admins manage recognitions" on public.recognitions
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
+-- Fotos: leitura pública pelo bucket; gravação e remoção somente por administradores.
 drop policy if exists "authenticated view seller photos" on storage.objects;
-create policy "authenticated view seller photos" on storage.objects
-for select to authenticated using (bucket_id = 'seller-photos');
+drop policy if exists "public view seller photos" on storage.objects;
+create policy "public view seller photos" on storage.objects
+for select to public using (bucket_id = 'seller-photos');
+
 drop policy if exists "admins upload seller photos" on storage.objects;
 create policy "admins upload seller photos" on storage.objects
-for insert to authenticated with check (bucket_id = 'seller-photos' and public.is_admin());
+for insert to authenticated
+with check (bucket_id = 'seller-photos' and public.is_admin());
+
 drop policy if exists "admins update seller photos" on storage.objects;
 create policy "admins update seller photos" on storage.objects
-for update to authenticated using (bucket_id = 'seller-photos' and public.is_admin())
+for update to authenticated
+using (bucket_id = 'seller-photos' and public.is_admin())
 with check (bucket_id = 'seller-photos' and public.is_admin());
+
 drop policy if exists "admins delete seller photos" on storage.objects;
 create policy "admins delete seller photos" on storage.objects
-for delete to authenticated using (bucket_id = 'seller-photos' and public.is_admin());
+for delete to authenticated
+using (bucket_id = 'seller-photos' and public.is_admin());
 
--- Cadastre manual ou via Dashboard o primeiro usuário administrador em profiles
--- após criar a conta correspondente em Authentication > Users.
+-- Depois de criar o usuário em Authentication > Users, associe-o a um perfil:
+-- insert into public.profiles (id, full_name, role, active)
+-- select id, 'Nome do administrador', 'admin', true
+-- from auth.users where email = 'admin@seudominio.com'
+-- on conflict (id) do update
+-- set full_name = excluded.full_name, role = excluded.role, active = true;
