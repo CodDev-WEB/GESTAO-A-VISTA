@@ -28,7 +28,38 @@ A administração aceita os dois formatos:
 
 ### Regras de importação
 - Datas: `AAAA-MM-DD` ou `DD/MM/AAAA`; datas nativas do Excel também são aceitas.
-- Valores: `1250,50`, `1.250,50`, `1250.50` e valores com prefixo `R$`.
+- Valores: `1250,50`, `1.250,50`, `1250.50` e valores com prefixo `R# Gestão à Vista
+
+Aplicação de acompanhamento de desempenho comercial com painel para TV e área administrativa protegida por autenticação Supabase.
+
+## Funcionalidades
+
+- Painel diário, semanal e mensal com faturamento, ticket médio, quantidade de vendas, meta e ranking.
+- Pódio das três primeiras colocadas.
+- Reconhecimento de boas práticas e ideias implementadas.
+- Cadastro de colaboradoras e fotos.
+- Metas mensais e diárias.
+- Importação de vendas por Excel (.xlsx/.xls) e CSV, com prévia e validação.
+- Persistência em Supabase (Postgres, Auth e Storage).
+
+## Importação de vendas
+
+A administração aceita os dois formatos:
+
+### Excel
+- Selecione o arquivo .xlsx ou .xls.
+- O sistema procura primeiro a aba `BASE VENDAS`; se ela não existir, utiliza a primeira aba.
+- Cabeçalhos reconhecidos: `Data`, `Vendedora`, `Faturamento líquido (R$)` e `Nº de vendas`.
+
+### CSV
+- Cabeçalhos obrigatórios: `data`, `vendedora`, `valor`, `vendas`.
+- Cabeçalho opcional: `email`.
+- O delimitador é detectado automaticamente (vírgula, ponto e vírgula ou tabulação).
+
+### Regras de importação
+- Datas: `AAAA-MM-DD` ou `DD/MM/AAAA`; datas nativas do Excel também são aceitas.
+; valores negativos representam estornos.
+- O faturamento líquido é a soma das vendas menos estornos. O faturamento bruto e o total de estornos ficam separados para que o ticket médio considere somente vendas efetivas.
 - Quantidade de vendas deve ser um número inteiro não negativo.
 - A colaboradora é identificada pelo e-mail, quando informado, ou pelo nome.
 - Linhas repetidas da mesma colaboradora no mesmo dia são consolidadas somando faturamento e quantidade de vendas.
@@ -91,4 +122,4 @@ Configure a URL pública do Worker em Supabase > Authentication > URL Configurat
 
 ## Banco de dados e segurança
 
-O arquivo `supabase/schema.sql` cria as tabelas `profiles`, `sellers`, `goals`, `sales_daily` e `recognitions), o bucket `seller-photos), funções auxiliares e políticas RLS. Usuários autenticados podem consultar dados operacionais; somente administradores ativos podem alterar esses dados. As fotos são públicas para leitura e restritas para gravação a administradores.
+O arquivo `supabase/schema.sql` cria e atualiza as tabelas `profiles`, `sellers`, `goals`, `sales_daily` e `recognitions), o bucket `seller-photos), funções auxiliares e políticas RLS. Usuários autenticados podem consultar dados operacionais; somente administradores ativos podem alterar esses dados. As fotos são públicas para leitura e restritas para gravação a administradores.
