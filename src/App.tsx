@@ -90,21 +90,24 @@ function useSession(){
  return {user,profile,loading}
 }
 function useData(){
- const [sellers,setSellers]=useState<Seller[]>(demoSellers),[sales,setSales]=useState<Sale[]>(demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(demoRecognitions),[goals,setGoals]=useState<Goal[]>([defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState('')
  const load=useCallback(async()=>{
   const client=supabase
   if(!client)return
   setBusy(true);setError('')
-  const [a,b,c,d]=await Promise.all([
-   client.from('sellers').select('*').order('full_name'),
-   client.from('sales_daily').select('*').order('sale_date',{ascending:false}),
-   client.from('recognitions').select('*').order('recognized_at',{ascending:false}),
-   client.from('goals').select('*').order('month',{ascending:false})
-  ])
-  const err=a.error||b.error||c.error||d.error
-  if(err)setError(err.message)
-  else{setSellers(a.data as Seller[]);setSales(b.data as Sale[]);setRecognitions(c.data as Recognition[]);setGoals(d.data as Goal[])}
-  setBusy(false)
+  try{
+   const [a,b,c,d]=await Promise.all([
+    client.from('sellers').select('*').order('full_name'),
+    client.from('sales_daily').select('*').order('sale_date',{ascending:false}),
+    client.from('recognitions').select('*').order('recognized_at',{ascending:false}),
+    client.from('goals').select('*').order('month',{ascending:false})
+   ])
+   const err=a.error||b.error||c.error||d.error
+   if(err)throw err
+   setSellers(a.data as Seller[]);setSales(b.data as Sale[]);setRecognitions(c.data as Recognition[]);setGoals(d.data as Goal[])
+  }catch(e){
+   setError(e instanceof Error?e.message:'Não foi possível carregar os dados do Supabase.')
+  }finally{setBusy(false)}
  },[])
  useEffect(()=>{
   const client=supabase
@@ -161,7 +164,7 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  const currentIdea=ideas.length?ideas[ideaIndex%ideas.length]:null
  const recognitionSeller=currentIdea?data.sellers.find(s=>s.id===currentIdea.seller_id):null
  return <div className={full?'dashboard full-dashboard':'dashboard'}>
-  <Header/><DemoNotice/>
+  <Header/><DemoNotice/>{data.error&&<div className="error-box" role="alert">Falha ao carregar os dados: {data.error}</div>}
   <main className="dash-main">
    <section className="welcome-line"><div><span className="eyebrow">NOSSO DESEMPENHO · {periodText(period)}</span><h1>O resultado é de <em>todas nós.</em></h1><p>Transparência para evoluir. Reconhecimento para inspirar.</p></div><div className="date-chip"><CalendarDays size={16}/>{new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}<span>{now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></section>
    <section className="period-row"><div className="period-tabs">{(['day','week','month'] as Period[]).map(p=><button onClick={()=>setPeriod(p)} className={period===p?'active':''} key={p}>{p==='day'?'Diário':p==='week'?'Semanal':'Mensal'}</button>)}</div><input aria-label="Data de referência" type="date" value={date} onChange={e=>setDate(e.target.value)}/></section>
