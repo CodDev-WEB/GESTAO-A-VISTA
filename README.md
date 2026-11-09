@@ -58,7 +58,7 @@ A administração aceita os dois formatos:
 
 ### Regras de importação
 - Datas: `AAAA-MM-DD` ou `DD/MM/AAAA`; datas nativas do Excel também são aceitas.
-; valores negativos representam estornos.
+-  são aceitos; valores negativos representam estornos.
 - O faturamento líquido é a soma das vendas menos estornos. O faturamento bruto e o total de estornos ficam separados para que o ticket médio considere somente vendas efetivas.
 - Quantidade de vendas deve ser um número inteiro não negativo.
 - A colaboradora é identificada pelo e-mail, quando informado, ou pelo nome.
