@@ -785,3 +785,260 @@
     overflow: hidden !important;
   }
 }
+
+
+/* ===== TV DISPLAY: consolidated layout and overflow safety ===== */
+@media (min-width: 601px) {
+  .full-dashboard {
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    background: #F1F3F5 !important;
+  }
+  .full-dashboard > .topbar {
+    height: 60px !important;
+    min-height: 60px !important;
+    padding-inline: clamp(18px, 2vw, 34px) !important;
+  }
+  .full-dashboard > .dash-main {
+    height: calc(100dvh - 60px) !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: clamp(8px, 1vh, 14px) clamp(16px, 2vw, 32px) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto minmax(0, 0.95fr) minmax(0, 1.05fr) !important;
+    gap: clamp(7px, .85vh, 12px) !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard > .dash-main > .welcome-line {
+    grid-row: 1 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    align-items: center !important;
+  }
+  .full-dashboard > .dash-main > .welcome-line h1 {
+    font-size: clamp(21px, 1.9vw, 31px) !important;
+    line-height: 1.12 !important;
+    margin: 3px 0 !important;
+  }
+  .full-dashboard > .dash-main > .welcome-line p {
+    font-size: clamp(10px, .78vw, 13px) !important;
+  }
+  .full-dashboard > .dash-main > .period-row {
+    grid-row: 2 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+  .full-dashboard > .dash-main > .overview-layout {
+    grid-row: 3 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: clamp(10px, 1.2vw, 18px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .overview-metrics {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+  .full-dashboard .overview-metrics > .goal-progress {
+    margin: 0 !important;
+    padding: 8px 12px !important;
+  }
+  .full-dashboard .overview-metrics > .metrics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    min-height: 0 !important;
+  }
+  .full-dashboard .overview-metrics .metric-card {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: clamp(7px, .8vh, 12px) !important;
+    gap: 4px !important;
+    justify-content: center !important;
+  }
+  .full-dashboard .overview-metrics .metric-card > span {
+    font-size: clamp(8px, .68vw, 11px) !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+  }
+  .full-dashboard .overview-metrics .metric-card > strong {
+    font-size: clamp(16px, 1.35vw, 22px) !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+  .full-dashboard > .dash-main > .overview-layout > .ranking-section {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section .section-head {
+    margin: 0 0 5px !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section .podium {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: calc(100% - 34px) !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 3px 0 0 !important;
+    gap: clamp(6px, .7vw, 10px) !important;
+  }
+  .full-dashboard .overview-layout > .ranking-section .podium-person,
+  .full-dashboard .overview-layout > .ranking-section .podium-person.place-1 {
+    height: 100% !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    padding: 7px 5px 26px !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .podium-person > strong {
+    max-width: 100% !important;
+    text-align: center !important;
+    font-size: clamp(9px, .72vw, 12px) !important;
+    line-height: 1.2 !important;
+    overflow-wrap: anywhere !important;
+  }
+  .full-dashboard .podium-person > b {
+    font-size: clamp(12px, 1vw, 16px) !important;
+  }
+  .full-dashboard .podium-person > small {
+    font-size: clamp(8px, .62vw, 10px) !important;
+  }
+  .full-dashboard > .dash-main > .rankings-layout {
+    grid-row: 4 !important;
+    grid-column: 1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.55fr) minmax(260px, .9fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: clamp(9px, 1vw, 15px) !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard > .dash-main > .rankings-layout > .table-section,
+  .full-dashboard > .dash-main > .rankings-layout > .actions-ranking-section {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: clamp(8px, .75vw, 12px) !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    border: 1px solid #dfe5e9 !important;
+    border-radius: 12px !important;
+  }
+  .full-dashboard > .dash-main > .rankings-layout > .table-section { grid-column: 1 !important; }
+  .full-dashboard > .dash-main > .rankings-layout > .actions-ranking-section { grid-column: 2 !important; }
+  .full-dashboard .rankings-layout .section-head {
+    flex: 0 0 auto !important;
+    margin: 0 0 6px !important;
+    min-height: 27px !important;
+  }
+  .full-dashboard .rankings-layout .table-wrap {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+  .full-dashboard .rankings-layout table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    white-space: nowrap !important;
+  }
+  .full-dashboard .rankings-layout th,
+  .full-dashboard .rankings-layout td {
+    padding: clamp(4px, .52vh, 7px) clamp(4px, .48vw, 8px) !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .full-dashboard .rankings-layout th { font-size: clamp(7px, .58vw, 9px) !important; }
+  .full-dashboard .rankings-layout td { font-size: clamp(8px, .66vw, 11px) !important; }
+  .full-dashboard .rankings-layout .seller-cell { min-width: 0 !important; gap: 5px !important; }
+  .full-dashboard .rankings-layout .seller-cell strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: clamp(8px, .66vw, 11px) !important;
+  }
+  .full-dashboard .rankings-layout .actions-ranking-list {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    gap: 1px !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 20px 25px minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto !important;
+    align-items: center !important;
+    column-gap: 5px !important;
+    padding: 2px 1px !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > .avatar {
+    width: 23px !important;
+    height: 23px !important;
+    font-size: 8px !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: clamp(8px, .62vw, 10px) !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > .action-stars {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1px !important;
+    white-space: nowrap !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > .action-stars svg {
+    width: 9px !important;
+    height: 9px !important;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > small {
+    grid-column: 3 / 5 !important;
+    font-size: 7px !important;
+    line-height: 1.1 !important;
+  }
+  .full-dashboard > .dash-main > .ideas-section,
+  .full-dashboard .dash-footer { display: none !important; }
+}
+@media (max-height: 700px) and (min-width: 601px) {
+  .full-dashboard > .topbar { height: 54px !important; min-height: 54px !important; }
+  .full-dashboard > .dash-main {
+    height: calc(100dvh - 54px) !important;
+    grid-template-rows: auto auto minmax(0, .9fr) minmax(0, 1.1fr) !important;
+    padding-block: 6px !important;
+    gap: 5px !important;
+  }
+}
