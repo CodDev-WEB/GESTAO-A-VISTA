@@ -172,6 +172,7 @@ function Guard({children,role}:{children:ReactNode;role:'admin'|'viewer'}){
  if(!user)return <Navigate to={role==='admin'?'/admin/login':'/viewer/login'} replace/>
  if(!profile?.active)return <div className="loading-screen">Acesso não liberado. Solicite ao administrador a ativação do seu perfil.</div>
  if(role==='admin'&&profile.role!=='admin')return <Navigate to="/viewer" replace/>
+ if(role==='viewer'&&profile.role!=='viewer')return <Navigate to="/admin" replace/>
  return <>{children}</>
 }
 function Admin(){
@@ -182,7 +183,7 @@ function Admin(){
  const [recSeller,setRecSeller]=useState(''),[recTitle,setRecTitle]=useState(''),[recDescription,setRecDescription]=useState(''),[recStars,setRecStars]=useState(1),[recKind,setRecKind]=useState('boas_praticas')
  const [photoSeller,setPhotoSeller]=useState('')
  async function logout(){await supabase?.auth.signOut();nav('/admin/login')}
- function parseFile(f:File){setFile(f);setMessage('');setParseError('');Papa.parse<CsvRow>(f,{header:true,skipEmptyLines:true,complete:r=>{const rows=r.data.map(x=>({...x,data:normalizeDate(x.data),vendedora:(x.vendedora||'').trim(),valor:String(x.valor||'').replace(/[R$\s.]/g,'').replace(',','.'),vendas:String(x.vendas||'0')}));const invalid=rows.find(x=>!x.data||!x.vendedora||!Number.isFinite(Number(x.valor))||!Number.isFinite(Number(x.vendas)));if(invalid){setParseError('Verifique as colunas: data, vendedora, valor e vendas. Datas aceitas: AAAA-MM-DD ou DD/MM/AAAA.');setPreview([])}else setPreview(rows)},error:e=>setParseError(e.message)})}
+ function parseFile(f:File){setFile(f);setMessage('');setParseError('');Papa.parse<CsvRow>(f,{header:true,skipEmptyLines:true,complete:r=>{const rows=r.data.map(x=>({...x,data:normalizeDate(x.data),vendedora:(x.vendedora||'').trim(),valor:parseCsvAmount(String(x.valor||'')),vendas:String(x.vendas||'0')}));const invalid=rows.find(x=>!x.data||!x.vendedora||!Number.isFinite(Number(x.valor))||!Number.isFinite(Number(x.vendas)));if(invalid){setParseError('Verifique as colunas: data, vendedora, valor e vendas. Datas aceitas: AAAA-MM-DD ou DD/MM/AAAA.');setPreview([])}else setPreview(rows)},error:e=>setParseError(e.message)})}
  async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');try{
   const unique=[...new Map(preview.map(r=>[(r.email||r.vendedora.toLowerCase()).toLowerCase(),r])).values()]
   const sellerMap=new Map<string,string>()
