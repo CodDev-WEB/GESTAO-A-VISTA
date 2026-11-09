@@ -103,7 +103,23 @@
 }
 
 /* TV layout refinement: stable columns, safe text wrapping and animated ranking window */
-.full-dashboard .dash-main{grid-template-rows:auto auto auto minmax(0,1fr) auto auto;row-gap:clamp(6px,.85vh,10px)}
+.full-dashboard .dash-main{
+ grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+ grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);
+ row-gap:clamp(8px,1vh,12px);
+ align-content:stretch
+}
+.full-dashboard .goal-progress{grid-column:1/-1;grid-row:4;align-self:start;min-height:0}
+.full-dashboard .ranking-section{grid-column:1;grid-row:5;align-self:stretch;min-height:0;overflow:hidden}
+.full-dashboard .table-section{grid-column:2;grid-row:5;align-self:stretch;min-height:0;overflow:hidden}
+.full-dashboard .ideas-section{grid-column:1/-1;grid-row:6;align-self:end;min-height:0;overflow:hidden}
+.full-dashboard .section-head{position:relative;z-index:1;min-height:26px}
+.full-dashboard .goal-progress,.full-dashboard .ranking-section,.full-dashboard .table-section,.full-dashboard .ideas-section{position:relative;z-index:0}
+.full-dashboard .progress-track{position:relative;z-index:0}
+.full-dashboard .podium{min-height:0}
+.full-dashboard .ticker-card{min-width:0}
+.full-dashboard .ticker-copy{min-width:0;overflow:hidden}
+.full-dashboard .ticker-copy strong,.full-dashboard .ticker-copy p{overflow-wrap:anywhere}
 .full-dashboard .welcome-line>div:first-child{min-width:0}
 .full-dashboard .welcome-line h1,.full-dashboard .welcome-line p{max-width:100%;overflow-wrap:anywhere}
 .full-dashboard .date-chip{white-space:nowrap;flex-shrink:0}
