@@ -445,3 +445,51 @@
  .full-dashboard .table-section,.full-dashboard .ideas-section{grid-row:auto}
  .full-dashboard .overview-metrics .metrics-grid{min-height:180px}
 }
+
+
+/* TV layout correction: use the full screen and keep every section in its intended region */
+@media (min-width:601px){
+  .full-dashboard{height:100dvh;min-height:0;overflow:hidden;background:#f4f6f8}
+  .full-dashboard>.dash-main{
+    width:100%;max-width:none;height:calc(100dvh - 76px);min-height:0;
+    margin:0;padding:clamp(10px,1.35vh,16px) clamp(18px,2.2vw,34px);
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto minmax(210px,1.12fr) minmax(150px,.92fr) auto;
+    gap:clamp(7px,.9vh,12px);overflow:hidden
+  }
+  .full-dashboard>.dash-main>.welcome-line{grid-row:1;margin:0;min-height:0;align-items:center}
+  .full-dashboard>.dash-main>.period-row{grid-row:2;margin:0;min-height:0}
+  .full-dashboard>.dash-main>.overview-layout{
+    grid-row:3;grid-column:1;display:grid!important;
+    grid-template-columns:minmax(0, .88fr) minmax(0,1.12fr)!important;
+    grid-template-rows:minmax(0,1fr);gap:clamp(12px,1.5vw,22px);
+    min-height:0;overflow:hidden
+  }
+  .full-dashboard .overview-metrics{grid-column:1;grid-row:1;display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;min-width:0;min-height:0}
+  .full-dashboard .overview-metrics>.goal-progress{margin:0;padding:8px 12px;min-width:0}
+  .full-dashboard .overview-metrics>.metrics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px;min-height:0}
+  .full-dashboard .overview-metrics .metric-card{min-width:0;min-height:0;padding:clamp(8px,1vh,13px);gap:5px;justify-content:center}
+  .full-dashboard .overview-layout>.ranking-section{grid-column:2!important;grid-row:1!important;margin:0;min-width:0;min-height:0;overflow:hidden}
+  .full-dashboard .overview-layout>.ranking-section .podium{width:100%;max-width:none;height:calc(100% - 42px);grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:10px;margin:0;padding:4px 0 0}
+  .full-dashboard .overview-layout>.ranking-section .podium-person,
+  .full-dashboard .overview-layout>.ranking-section .podium-person.place-1{height:auto;min-height:0;padding:10px 7px 0;justify-content:center}
+  .full-dashboard>.dash-main>.table-section{grid-row:4;grid-column:1;margin:0;min-height:0;overflow:hidden}
+  .full-dashboard>.dash-main>.table-section .table-wrap{max-height:calc(100% - 36px);overflow:hidden}
+  .full-dashboard>.dash-main>.ideas-section{grid-row:5;grid-column:1;margin:0;min-height:0;overflow:hidden}
+  .full-dashboard .dash-footer{display:none!important}
+}
+/* Do not collapse the TV's two-column composition on common laptop/TV CSS widths */
+@media (max-width:900px) and (min-height:500px){
+  .full-dashboard>.dash-main{grid-template-rows:auto auto minmax(210px,1.12fr) minmax(150px,.92fr) auto;overflow:hidden}
+  .full-dashboard .overview-layout{grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr)!important;grid-row:3;overflow:hidden}
+  .full-dashboard .overview-layout>.ranking-section{grid-column:2!important;grid-row:1!important}
+  .full-dashboard .table-section{grid-row:4!important}
+  .full-dashboard .ideas-section{grid-row:5!important}
+}
+@media(max-height:650px) and (min-width:601px){
+  .full-dashboard>.dash-main{grid-template-rows:auto auto minmax(185px,1fr) minmax(125px,.78fr) auto;padding-top:7px;padding-bottom:7px;gap:6px}
+  .full-dashboard .welcome-line h1{font-size:clamp(20px,2vw,29px);margin:3px 0}
+  .full-dashboard .welcome-line p{font-size:10px}
+  .full-dashboard .section-head{margin-bottom:5px}
+  .full-dashboard .section-head h2{font-size:16px}
+}
