@@ -121,7 +121,7 @@ for all to authenticated using (public.is_admin()) with check (public.is_admin()
 drop policy if exists "authenticated read recognitions" on public.recognitions;
 create policy "authenticated read recognitions" on public.recognitions
 for select to authenticated using (true);
-drop policy if exists "admins manage recognitions" on public.recognitions
+drop policy if exists "admins manage recognitions" on public.recognitions;
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "authenticated view seller photos" on storage.objects;
