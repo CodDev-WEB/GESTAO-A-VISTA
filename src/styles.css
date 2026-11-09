@@ -16,7 +16,10 @@
 .full-dashboard .welcome-line h1{font-size:clamp(21px,2vw,32px);margin:3px 0}
 .full-dashboard .welcome-line p{font-size:clamp(9px,.8vw,12px)}
 .full-dashboard .date-chip{padding:7px 10px;font-size:10px}
-.full-dashboard .period-row{display:none}
+.full-dashboard .period-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;min-width:0}
+.full-dashboard .period-tabs{padding:3px;gap:3px}
+.full-dashboard .period-tabs button{padding:6px 15px;font-size:clamp(9px,.72vw,11px);white-space:nowrap}
+.full-dashboard .period-row input{padding:5px 8px;font-size:10px;max-width:150px}
 .full-dashboard .metrics-grid{grid-column:1/-1;gap:10px}
 .full-dashboard .metric-card{padding:clamp(8px,1vh,13px) clamp(10px,1.2vw,17px);gap:4px;border-radius:9px}
 .full-dashboard .metric-icon{width:27px;height:27px;margin:0}
