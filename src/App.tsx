@@ -16,7 +16,7 @@ type Sale = { id:string; seller_id:string; sale_date:string; revenue:number; sal
 type Recognition = { id:string; seller_id:string; stars:number; kind:string; title:string; description:string; recognized_at:string }
 type Goal = { month:string; monthly_target:number; daily_target:number }
 type Profile = { id:string; full_name:string; role:'admin'|'viewer'; active:boolean }
-type Period = 'day'|'week'|'month'
+type Period = 'day'|'week'|'month'|'range'
 type ImportRow = { data:string; vendedora:string; valor:number|string; vendas:number|string; email?:string }
 
 const normalizeHeader = (value:unknown) => String(value??'').replace(/^\uFEFF/,'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ')
@@ -172,8 +172,9 @@ function Login({role}:{role:'admin'|'viewer'}){
  async function submit(e:FormEvent){e.preventDefault();setError('');if(!supabase){setError('Configure as variáveis do Supabase para habilitar o login.');return}setBusy(true);try{const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error){setError(error.message);return}nav(role==='admin'?'/admin':'/viewer')}catch(e){setError(e instanceof Error?e.message:'Não foi possível conectar ao serviço de autenticação.')}finally{setBusy(false)}}
  return <div className="login-page"><div className="login-side"><Brand/><div className="login-message"><span className="eyebrow">CULTURA DE RESULTADOS</span><h1>Grandes resultados começam com <em>visibilidade.</em></h1><p>Informação clara, reconhecimento e um time que cresce junto.</p><div className="login-stat"><Trophy/><div><strong>Uma equipe. Um objetivo.</strong><small>Cada conquista conta.</small></div></div></div><div className="login-foot">GESTÃO À VISTA · DESEMPENHO EM TEMPO REAL</div></div><div className="login-form-wrap"><form className="login-card" onSubmit={submit}><div className="form-icon">{role==='admin'?<ShieldCheck/>:<Users/>}</div><span className="eyebrow">{role==='admin'?'ÁREA RESTRITA':'ACESSO DA EQUIPE'}</span><h2>{role==='admin'?'Administração':'Painel da equipe'}</h2><p>{role==='admin'?'Entre para gerenciar os resultados e reconhecer o time.':'Entre para acompanhar os resultados da equipe.'}</p><label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" required/></label><label>Senha<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Sua senha" required/></label>{error&&<div className="error-box">{error}</div>}<button className="btn primary full" disabled={busy}>{busy?'Entrando...':'Entrar'}<ChevronRight size={17}/></button><Link to="/" className="back-link">Voltar ao painel de visualização</Link></form></div></div>
 }
-function rankRows(sellers:Seller[],sales:Sale[],recognitions:Recognition[],period:Period,date:string){
- const [start,end]=dateRange(period,date)
+function rankRows(sellers:Seller[],sales:Sale[],recognitions:Recognition[],period:Period,date:string,rangeEnd?:string){
+ const [start,defaultEnd]=dateRange(period,date)
+ const end=period==='range'&&rangeEnd?rangeEnd:defaultEnd
  return sellers.filter(s=>s.active).map(s=>{
   const rows=sales.filter(x=>x.seller_id===s.id&&x.sale_date>=start&&x.sale_date<=end)
   const revenue=rows.reduce((n,x)=>n+Number(x.revenue),0),count=rows.reduce((n,x)=>n+Number(x.sales_count),0)
@@ -185,16 +186,16 @@ function Podium({rows}:{rows:ReturnType<typeof rankRows>}){
  const ordered=rows.slice(0,3)
  return <div className="podium">{ordered.map((r,i)=>{const rank=i===1?1:i===0?2:3;return <div className={'podium-person place-'+rank} key={r.seller.id}><div className="podium-crown">{rank===1?<Crown/>:<Medal/>}</div><div className="podium-avatar"><Avatar seller={r.seller} size={rank===1?'xl':'lg'} index={rank}/><span className="podium-rank">{rank}</span></div><strong>{r.seller.full_name}</strong><b>{money(r.revenue)}</b><small>{r.count} vendas</small><div className="podium-base"><span>{rank===1?'1º LUGAR':rank===2?'2º LUGAR':'3º LUGAR'}</span></div></div>})}</div>
 }
-function periodText(p:Period){return p==='day'?'HOJE':p==='week'?'ESTA SEMANA':'ESTE MÊS'}
+function periodText(p:Period){return p==='day'?'HOJE':p==='week'?'ESTA SEMANA':p==='range'?'PERÍODO PERSONALIZADO':'ESTE MÊS'}
 function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:boolean}){
- const [period,setPeriod]=useState<Period>('month'),[date,setDate]=useState(today()),[now,setNow]=useState(new Date())
+ const [period,setPeriod]=useState<Period>('month'),[date,setDate]=useState(today()),[endDate,setEndDate]=useState(today()),[now,setNow]=useState(new Date())
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
- const rows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,period,date),[data.sellers,data.sales,data.recognitions,period,date])
+ const rows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,period,date,endDate>=date?endDate:date),[data.sellers,data.sales,data.recognitions,period,date,endDate])
  const monthRows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,'month',date),[data.sellers,data.sales,data.recognitions,date])
  const allMonth=monthRows.reduce((n,r)=>n+r.revenue,0)
  const periodRevenue=rows.reduce((n,r)=>n+r.revenue,0),periodCount=rows.reduce((n,r)=>n+r.count,0)
  const periodTicket=periodCount?rows.reduce((n,r)=>n+r.ticket*r.count,0)/periodCount:0
- const periodLabel=period==='day'?'no dia':period==='week'?'na semana':'no mês'
+ const periodLabel=period==='day'?'no dia':period==='week'?'na semana':period==='range'?'no período selecionado':'no mês'
  const goal=data.goals.find(g=>g.month===monthKey(date))||defaultGoal
  const progress=goal.monthly_target?Math.max(0,Math.min(100,allMonth/Number(goal.monthly_target)*100)):0
  const ideas=data.recognitions.filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at))
@@ -207,7 +208,7 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  const rankingMaxStart=Math.max(0,rows.length-rankingPageSize)
  const safeRankingStep=Math.min(rankingStep,2*rankingMaxStart)
  const rankingStart=safeRankingStep<=rankingMaxStart?safeRankingStep:2*rankingMaxStart-safeRankingStep
- useEffect(()=>{setRankingStep(0)},[rows.length,period,date])
+ useEffect(()=>{setRankingStep(0)},[rows.length,period,date,endDate])
  useEffect(()=>{
   if(!full||rankingMaxStart===0)return
   const timer=window.setInterval(()=>setRankingStep(current=>current>=2*rankingMaxStart?0:current+1),2600)
@@ -217,8 +218,8 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  return <div className={full?'dashboard full-dashboard':'dashboard'}>
   <Header/><DemoNotice/>{data.error&&<div className="error-box" role="alert">Falha ao carregar os dados: {data.error}</div>}
   <main className="dash-main">
-   <section className="welcome-line"><div><span className="eyebrow">NOSSO DESEMPENHO · {periodText(period)}</span><h1>O resultado é de <em>todas nós.</em></h1><p>Transparência para evoluir. Reconhecimento para inspirar.</p></div><div className="date-chip"><CalendarDays size={16}/>{new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}<span>{now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></section>
-   <section className="period-row"><div className="period-tabs">{(['day','week','month'] as Period[]).map(p=><button onClick={()=>setPeriod(p)} className={period===p?'active':''} key={p}>{p==='day'?'Diário':p==='week'?'Semanal':'Mensal'}</button>)}</div><input aria-label="Data de referência" type="date" value={date} onChange={e=>{if(e.target.value)setDate(e.target.value)}}/></section>
+   <section className="welcome-line"><div><span className="eyebrow">NOSSO DESEMPENHO · {periodText(period)}</span><h1>O resultado é de <em>todas nós.</em></h1><p>Transparência para evoluir. Reconhecimento para inspirar.</p></div><div className="date-chip"><CalendarDays size={16}/>{period==='range'?new Date(date+'T12:00:00').toLocaleDateString('pt-BR')+' até '+new Date(endDate+'T12:00:00').toLocaleDateString('pt-BR'):new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}<span>{now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></section>
+   <section className="period-row"><div className="period-tabs">{(['day','week','month','range'] as Period[]).map(p=><button onClick={()=>setPeriod(p)} className={period===p?'active':''} key={p}>{p==='day'?'Diário':p==='week'?'Semanal':p==='month'?'Mensal':'Período'}</button>)}</div>{period==='range'?<div className="date-range-fields"><label>De<input aria-label="Data inicial do período" type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input aria-label="Data final do período" type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>:<input aria-label="Data de referência" type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/>}</section>
    <section className="metrics-grid">
     <Metric icon={<Target/>} label="META MENSAL" value={money(Number(goal.monthly_target))} detail={monthLabel(date)} tone="gold"/>
     <Metric icon={<TrendingUp/>} label="FATURAMENTO DO PERÍODO" value={money(periodRevenue)} detail={'Resultado '+periodLabel} tone="green"/>
