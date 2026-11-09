@@ -19,13 +19,13 @@ type Profile = { id:string; full_name:string; role:'admin'|'viewer'; active:bool
 type Period = 'day'|'week'|'month'
 type ImportRow = { data:string; vendedora:string; valor:number|string; vendas:number|string; email?:string }
 
-const normalizeHeader = (value:unknown) => String(value??'').replace(/^\\uFEFF/,'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\\s+/g,' ')
+const normalizeHeader = (value:unknown) => String(value??'').replace(/^\uFEFF/,'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ')
 const parseImportAmount = (value:unknown):number|string => {
  if(typeof value==='number')return Number.isFinite(value)?value:''
  const raw=String(value??'').trim()
  if(!raw)return ''
- let s=raw.replace(/R\\$/gi,'').replace(/\\s/g,'')
- if(s.includes(',')&&s.includes('.'))s=s.replace(/\\./g,'').replace(',','.')
+ let s=raw.replace(/R\$/gi,'').replace(/\s/g,'')
+ if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.')
  else if(s.includes(','))s=s.replace(',','.')
  const n=Number(s)
  return Number.isFinite(n)?n:''
@@ -229,26 +229,32 @@ function Admin(){
  function parseFile(f:File){
   setFile(f);setMessage('');setParseError('');setPreview([])
   const finish=(rawRows:Record<string,unknown>[])=>{
-   const rows=rawRows.map(raw=>{
+   const rows=rawRows.filter(raw=>Object.values(raw).some(value=>value!==null&&value!==undefined&&String(value).trim()!=='')).map(raw=>{
     const fields=new Map(Object.entries(raw).map(([key,value])=>[normalizeHeader(key),value]))
     const get=(...names:string[])=>{for(const name of names){const value=fields.get(normalizeHeader(name));if(value!==undefined&&value!==null&&String(value).trim()!=='')return value}return ''}
-    return {data:normalizeDate(get('data','date')),vendedora:String(get('vendedora','vendedor','colaboradora','nome')).trim(),valor:parseImportAmount(get('valor','faturamento liquido (r$)','faturamento liquido','faturamento','valor vendido','receita')),vendas:parseImportAmount(get('vendas','nº de vendas','numero de vendas','quantidade de vendas','qtd vendas','cupons')),email:String(get('email','e-mail')).trim()||undefined}
+    return {
+     data:normalizeDate(get('data','date')),
+     vendedora:String(get('vendedora','vendedor','colaboradora','nome')).trim(),
+     valor:parseImportAmount(get('valor','faturamento liquido (r$)','faturamento liquido','faturamento','valor vendido','receita')),
+     vendas:parseImportAmount(get('vendas','nº de vendas','numero de vendas','quantidade de vendas','qtd vendas','cupons')),
+     email:String(get('email','e-mail')).trim()||undefined
+    }
    })
-   const invalid=rows.find(x=>!x.data||!x.vendedora||x.valor===''||!Number.isFinite(Number(x.valor))||x.vendas===''||!Number.isFinite(Number(x.vendas))||Number(x.vendas)<0)
    if(!rows.length){setParseError('O arquivo não contém registros para importar.');return}
-   if(invalid){setParseError('Não foi possível reconhecer os dados. Confira as colunas Data, Vendedora, Faturamento líquido (R$) e Nº de vendas.');return}
+   const invalidIndex=rows.findIndex(x=>!x.data||!x.vendedora||x.valor===''||!Number.isFinite(Number(x.valor))||Number(x.valor)<0||x.vendas===''||!Number.isInteger(Number(x.vendas))||Number(x.vendas)<0)
+   if(invalidIndex>=0){setParseError('Registro '+(invalidIndex+2)+': confira Data, Vendedora, Faturamento líquido e Nº de vendas. Use datas AAAA-MM-DD ou DD/MM/AAAA, valores válidos e quantidade inteira de vendas.');return}
    setPreview(rows)
   }
-  const isExcel=/\\.(xlsx|xls)$/i.test(f.name)
+  const isExcel=/\.(xlsx|xls)$/i.test(f.name)
   if(isExcel){
    f.arrayBuffer().then(buffer=>{
     const workbook=XLSX.read(buffer,{type:'array',cellDates:true})
     const sheet=workbook.Sheets['BASE VENDAS']||workbook.Sheets[workbook.SheetNames[0]]
     if(!sheet){setParseError('Nenhuma aba encontrada no arquivo Excel.');return}
-    finish(XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:''}))
+    finish(XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:true}))
    }).catch(e=>setParseError(e instanceof Error?e.message:'Falha ao ler o arquivo Excel.'))
   }else{
-   Papa.parse<Record<string,unknown>>(f,{header:true,skipEmptyLines:true,complete:r=>finish(r.data),error:e=>setParseError(e.message)})
+   Papa.parse<Record<string,unknown>>(f,{header:true,delimiter:'',skipEmptyLines:'greedy',complete:r=>finish(r.data),error:e=>setParseError(e.message)})
   }
  }
  async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');try{
