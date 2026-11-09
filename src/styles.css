@@ -525,3 +525,41 @@
  .full-dashboard>.dash-main{grid-template-rows:auto auto minmax(210px,1.02fr) minmax(190px,.98fr)!important}
  .full-dashboard>.dash-main>.rankings-layout{grid-row:4;grid-template-columns:minmax(0,1.65fr) minmax(230px,.85fr)}
 }
+
+
+/* Final TV composition: replace the old bottom ideas strip with two ranking cards */
+@media (min-width:601px){
+ .full-dashboard>.dash-main{
+  grid-template-rows:auto auto minmax(205px,.95fr) minmax(210px,1.05fr)!important;
+ }
+ .full-dashboard>.dash-main>.rankings-layout{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.7fr) minmax(270px,.9fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  grid-row:4!important;grid-column:1!important;
+  align-items:stretch;gap:clamp(10px,1.2vw,18px);
+  min-height:0;height:100%;width:100%;overflow:hidden
+ }
+ .full-dashboard>.dash-main>.rankings-layout>.table-section,
+ .full-dashboard>.dash-main>.rankings-layout>.actions-ranking-section{
+  display:flex;flex-direction:column;grid-row:1!important;
+  min-width:0;min-height:0;height:100%;margin:0!important;
+  padding:clamp(8px,.8vw,12px);overflow:hidden;
+  background:#fff;border:1px solid #dfe5e9;border-radius:13px
+ }
+ .full-dashboard>.dash-main>.rankings-layout>.table-section{grid-column:1!important}
+ .full-dashboard>.dash-main>.rankings-layout>.actions-ranking-section{grid-column:2!important}
+ .full-dashboard .rankings-layout .section-head{flex:none;margin:0 0 7px;align-items:center}
+ .full-dashboard .rankings-layout .section-head h2{font-size:clamp(14px,1.05vw,18px)}
+ .full-dashboard .rankings-layout .table-wrap{flex:1;min-height:0;max-height:none!important;overflow:hidden}
+ .full-dashboard .rankings-layout .actions-ranking-list{flex:1;min-height:0;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+ .full-dashboard .rankings-layout .action-ranking-row{flex:1;min-height:0;padding:3px 2px;column-gap:6px}
+ .full-dashboard .rankings-layout .action-ranking-row>.avatar{width:25px;height:25px;font-size:9px}
+ .full-dashboard .rankings-layout .action-ranking-row>strong{font-size:clamp(9px,.68vw,11px)}
+ .full-dashboard .rankings-layout .action-ranking-row>.action-stars svg{width:10px;height:10px}
+ .full-dashboard .rankings-layout .action-ranking-row>small{font-size:8px}
+ .full-dashboard>.dash-main>.ideas-section,.full-dashboard>.dash-main>.dash-footer{display:none!important}
+}
+@media (max-width:900px) and (min-height:500px){
+ .full-dashboard>.dash-main>.rankings-layout{grid-template-columns:minmax(0,1.55fr) minmax(235px,.9fr)!important}
+}
