@@ -563,3 +563,179 @@
 @media (max-width:900px) and (min-height:500px){
  .full-dashboard>.dash-main>.rankings-layout{grid-template-columns:minmax(0,1.55fr) minmax(235px,.9fr)!important}
 }
+
+
+/* TV dashboard — final responsive composition for 16:9 displays */
+@media (min-width: 601px) {
+  .full-dashboard {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    background: #F1F3F5;
+  }
+  .full-dashboard > .demo-notice { display: none !important; }
+  .full-dashboard > .dash-main {
+    width: 100%;
+    max-width: none;
+    height: calc(100dvh - 76px);
+    min-height: 0;
+    margin: 0;
+    padding: clamp(10px, 1.35vh, 18px) clamp(16px, 2vw, 32px);
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(220px, .92fr) minmax(220px, 1.08fr);
+    gap: clamp(8px, 1vh, 13px);
+    overflow: hidden;
+  }
+  .full-dashboard > .dash-main > .welcome-line {
+    grid-row: 1; margin: 0; min-width: 0; min-height: 0;
+    align-items: center; gap: 16px;
+  }
+  .full-dashboard > .dash-main > .welcome-line h1 {
+    font-size: clamp(22px, 2vw, 32px);
+    line-height: 1.12;
+  }
+  .full-dashboard > .dash-main > .welcome-line p {
+    font-size: clamp(10px, .8vw, 13px);
+  }
+  .full-dashboard > .dash-main > .period-row {
+    grid-row: 2; margin: 0; min-height: 0; gap: 12px;
+  }
+  .full-dashboard > .dash-main > .overview-layout {
+    grid-row: 3; grid-column: 1;
+    display: grid !important;
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr) !important;
+    grid-template-rows: minmax(0, 1fr);
+    gap: clamp(12px, 1.5vw, 22px);
+    min-width: 0; min-height: 0; overflow: hidden;
+  }
+  .full-dashboard .overview-metrics {
+    grid-column: 1; grid-row: 1;
+    display: grid; grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px; min-width: 0; min-height: 0;
+  }
+  .full-dashboard .overview-metrics > .goal-progress {
+    margin: 0; min-width: 0; padding: 8px 12px;
+  }
+  .full-dashboard .overview-metrics > .metrics-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 8px; min-width: 0; min-height: 0;
+  }
+  .full-dashboard .overview-metrics .metric-card {
+    min-width: 0; min-height: 0; padding: clamp(8px, .9vh, 13px);
+    gap: 4px; justify-content: center;
+  }
+  .full-dashboard .overview-metrics .metric-card > span {
+    font-size: clamp(9px, .72vw, 11px); line-height: 1.25;
+  }
+  .full-dashboard .overview-metrics .metric-card > strong {
+    font-size: clamp(17px, 1.45vw, 23px);
+    white-space: normal; overflow-wrap: anywhere;
+  }
+  .full-dashboard .overview-layout > .ranking-section {
+    grid-column: 2 !important; grid-row: 1 !important;
+    margin: 0; min-width: 0; min-height: 0; overflow: hidden;
+  }
+  .full-dashboard .overview-layout > .ranking-section .podium {
+    width: 100%; max-width: none; height: calc(100% - 40px);
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch; gap: clamp(7px, .8vw, 12px);
+    margin: 0; padding: 5px 0 0;
+  }
+  .full-dashboard .overview-layout > .ranking-section .podium-person,
+  .full-dashboard .overview-layout > .ranking-section .podium-person.place-1 {
+    width: 100%; height: 100%; min-width: 0; min-height: 0;
+    padding: 8px 7px 30px; gap: 5px; justify-content: center;
+  }
+  .full-dashboard > .dash-main > .rankings-layout {
+    grid-row: 4 !important; grid-column: 1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.65fr) minmax(270px, .85fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    align-items: stretch; gap: clamp(10px, 1.2vw, 18px);
+    width: 100%; min-width: 0; min-height: 0; height: 100%;
+    overflow: hidden;
+  }
+  .full-dashboard > .dash-main > .rankings-layout > .table-section,
+  .full-dashboard > .dash-main > .rankings-layout > .actions-ranking-section {
+    display: flex; flex-direction: column;
+    grid-row: 1 !important; min-width: 0; min-height: 0;
+    height: 100%; margin: 0 !important; padding: clamp(9px, .85vw, 13px);
+    overflow: hidden; background: #fff;
+    border: 1px solid #dfe5e9; border-radius: 13px;
+  }
+  .full-dashboard > .dash-main > .rankings-layout > .table-section { grid-column: 1 !important; }
+  .full-dashboard > .dash-main > .rankings-layout > .actions-ranking-section { grid-column: 2 !important; }
+  .full-dashboard .rankings-layout .section-head {
+    flex: none; min-width: 0; margin: 0 0 7px; gap: 8px;
+  }
+  .full-dashboard .rankings-layout .section-head h2 {
+    font-size: clamp(14px, 1.05vw, 18px); line-height: 1.2;
+  }
+  .full-dashboard .rankings-layout .table-wrap {
+    flex: 1; min-width: 0; min-height: 0; max-height: none !important;
+    overflow: hidden;
+  }
+  .full-dashboard .rankings-layout table {
+    width: 100%; table-layout: fixed; white-space: nowrap;
+  }
+  .full-dashboard .rankings-layout th,
+  .full-dashboard .rankings-layout td {
+    padding: clamp(5px, .65vh, 9px) clamp(5px, .55vw, 9px);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .full-dashboard .rankings-layout th { font-size: clamp(8px, .62vw, 10px); }
+  .full-dashboard .rankings-layout td { font-size: clamp(9px, .7vw, 11px); }
+  .full-dashboard .rankings-layout .seller-cell { min-width: 0; gap: 6px; }
+  .full-dashboard .rankings-layout .seller-cell strong {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    font-size: clamp(9px, .7vw, 11px);
+  }
+  .full-dashboard .rankings-layout .ranking-stars { min-width: 0; gap: 1px; }
+  .full-dashboard .rankings-layout .ranking-stars svg {
+    width: clamp(9px, .68vw, 12px); height: clamp(9px, .68vw, 12px);
+    flex-basis: auto;
+  }
+  .full-dashboard .rankings-layout .actions-ranking-list {
+    flex: 1; min-width: 0; min-height: 0;
+    display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row {
+    flex: 1; min-height: 0; min-width: 0;
+    display: grid; grid-template-columns: 22px 26px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto; align-items: center;
+    column-gap: 6px; padding: 3px 2px;
+    border-bottom: 1px solid #edf0f2;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > .avatar {
+    width: 25px; height: 25px; font-size: 9px;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > strong {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; font-size: clamp(9px, .68vw, 11px);
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > .action-stars {
+    display: flex; align-items: center; gap: 1px; white-space: nowrap;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > .action-stars svg {
+    width: 10px; height: 10px;
+  }
+  .full-dashboard .rankings-layout .action-ranking-row > small {
+    grid-column: 3 / 5; font-size: 8px; line-height: 1.2;
+  }
+  .full-dashboard > .dash-main > .ideas-section,
+  .full-dashboard .dash-footer { display: none !important; }
+}
+@media (max-height: 680px) and (min-width: 601px) {
+  .full-dashboard > .dash-main {
+    grid-template-rows: auto auto minmax(190px, .9fr) minmax(190px, 1.1fr);
+    padding-top: 7px; padding-bottom: 7px; gap: 6px;
+  }
+  .full-dashboard .section-head { margin-bottom: 4px; }
+  .full-dashboard .overview-layout > .ranking-section .podium-person,
+  .full-dashboard .overview-layout > .ranking-section .podium-person.place-1 {
+    padding: 5px 5px 27px; gap: 3px;
+  }
+}
