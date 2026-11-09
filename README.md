@@ -11,7 +11,7 @@ Aplicação web para gestão de desempenho comercial, com painel público para T
 ## Configuração
 1. Instale Node.js 20+.
 2. Execute `npm install`.
-3. Copie `.env.example` para `.env.local` e informe `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+3. Copie `.env.example` para `.env.local` e informe `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (ou a variável legada `VITE_SUPABASE_ANON_KEY`).
 4. Execute o SQL de `supabase/schema.sql` no SQL Editor do Supabase.
 5. Crie usuários no Supabase Auth. Cadastre os perfis na tabela `profiles` com papel `admin` ou `viewer`.
 6. Execute `npm run dev`.
@@ -38,4 +38,4 @@ A identificação preferencial é pelo e-mail; sem e-mail, utiliza o nome normal
 - Estrelas e boas práticas são atribuídas manualmente pelo administrador; não alteram o ranking financeiro.
 
 ## Segurança
-As políticas RLS e as funções de autorização estão em `supabase/schema.sql`. Mantenha a chave `service_role` fora do frontend. Não use contas compartilhadas entre administração e visualização.
+As políticas RLS e as funções de autorização estão em `supabase/schema.sql`. Mantenha a chave `service_role` ou `sb_secret_` fora do frontend. A chave `sb_publishable_` é destinada ao cliente, mas o acesso aos dados continua dependendo das políticas RLS. Não use contas compartilhadas entre administração e visualização.
