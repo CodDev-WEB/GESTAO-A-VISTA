@@ -290,3 +290,33 @@
 @media(orientation:portrait){
  .full-dashboard .podium-person,.full-dashboard .podium-person.place-1{min-height:176px}
 }
+
+
+/* TV dashboard: neutral light-gray canvas and clearly ordered podium cards */
+.full-dashboard{background:#F1F3F5!important;color:#172538}
+.full-dashboard>.topbar{background:#F1F3F5!important;border-bottom:1px solid #DCE2E7}
+.full-dashboard>.topbar .brand strong{color:#172538}
+.full-dashboard>.topbar .brand strong span{color:#49AEBB}
+.full-dashboard>.topbar .brand small,.full-dashboard>.topbar .topbar-right{color:#586675}
+.full-dashboard .welcome-line h1{color:#172538}
+.full-dashboard .welcome-line h1 em{color:#299EAD}
+.full-dashboard .welcome-line p,.full-dashboard .eyebrow{color:#647382}
+.full-dashboard .date-chip{background:#fff;border-color:#DCE2E7;color:#344454}
+.full-dashboard .period-tabs{background:#E4E9ED;border:1px solid #D7DEE4}
+.full-dashboard .period-tabs button{color:#344454}
+.full-dashboard .period-tabs button.active{background:#172538;color:#fff}
+.full-dashboard .metric-card,.full-dashboard .goal-progress,.full-dashboard .table-wrap{
+ background:#fff;border:1px solid #E0E5E9;box-shadow:0 3px 12px #1725380c
+}
+.full-dashboard .section-head h2{color:#172538}
+.full-dashboard .section-head h2 span{color:#299EAD}
+.full-dashboard .podium-person,.full-dashboard .podium-person.place-1{
+ background:#fff;border-color:#DCE2E7;box-shadow:0 5px 16px #17253812
+}
+.full-dashboard .podium-person.place-1{border-color:#D4A72C}
+.full-dashboard .podium-person.place-2{border-color:#AEB8C0}
+.full-dashboard .podium-person.place-3{border-color:#BD8B69}
+.full-dashboard .podium-person>strong,.full-dashboard .podium-person>b{color:#172538}
+.full-dashboard .podium-person>small{color:#586675}
+.full-dashboard .ticker-card{background:#172538}
+.full-dashboard .ticker-stars{color:#FFDE50}
