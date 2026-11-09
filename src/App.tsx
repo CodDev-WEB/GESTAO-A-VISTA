@@ -71,7 +71,7 @@ function useSession(){
     if(error)throw error
     if(alive&&current===request){
      setProfile(p as Profile|null)
-     if(!p)setProfileError('Nenhum perfil foi encontrado para este usuário em public.profiles. Confirme se o usuário existe em Authentication > Users e se o SQL de criação do perfil foi executado.')
+     if(!p)setProfileError('Consulta retornou zero linhas. Sessão autenticada: '+userId+'. Confira se este ID é o mesmo da coluna usuario_id no SQL Editor e se a política RLS permite SELECT para id = auth.uid().')
     }
    }catch(e){
     if(alive&&current===request){
@@ -200,7 +200,7 @@ function Guard({children,role}:{children:ReactNode;role:'admin'|'viewer'}){
  if(!hasSupabase)return <Navigate to={role==='admin'?'/admin/login':'/viewer/login'} replace/>
  if(loading)return <div className="loading-screen">Verificando acesso...</div>
  if(!user)return <Navigate to={role==='admin'?'/admin/login':'/viewer/login'} replace/>
- if(!profile?.active)return <div className="loading-screen"><div>Acesso não liberado. {profileError||'O perfil está inativo ou não foi encontrado.'}</div></div>
+ if(!profile?.active)return <div className="loading-screen"><div>Acesso não liberado.<br/>{profileError||'O perfil está inativo ou não foi encontrado.'}<br/>E-mail da sessão: {user.email||'não disponível'}</div></div>
  if(role==='admin'&&profile.role!=='admin')return <Navigate to="/viewer" replace/>
  if(role==='viewer'&&profile.role!=='viewer')return <Navigate to="/admin" replace/>
  return <>{children}</>
