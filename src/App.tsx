@@ -194,7 +194,7 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  const dayRows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,'day',date),[data.sellers,data.sales,data.recognitions,date])
  const allMonth=monthRows.reduce((n,r)=>n+r.revenue,0),allDay=dayRows.reduce((n,r)=>n+r.revenue,0),count=monthRows.reduce((n,r)=>n+r.count,0)
  const goal=data.goals.find(g=>g.month===monthKey(date))||defaultGoal
- const progress=goal.monthly_target?Math.min(100,allMonth/Number(goal.monthly_target)*100):0
+ const progress=goal.monthly_target?Math.max(0,Math.min(100,allMonth/Number(goal.monthly_target)*100)):0
  const ideas=data.recognitions.filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at))
  const [ideaIndex,setIdeaIndex]=useState(0)
  useEffect(()=>{if(ideas.length<2)return;const t=setInterval(()=>setIdeaIndex(i=>(i+1)%ideas.length),6500);return()=>clearInterval(t)},[ideas.length])
