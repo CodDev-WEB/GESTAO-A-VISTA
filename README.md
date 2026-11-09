@@ -51,11 +51,11 @@ Configure o Worker conectado ao repositório GitHub:
 | Diretório de saída | `dist` |
 | Comando de deploy | `npx wrangler deploy` |
 
-Em **Settings > Variables and Secrets** (variáveis de build), configure para Production e Preview:
+Em **Settings > Build > Build variables and secrets**, cadastre as duas variáveis para o ambiente de produção (e também para Preview, se for usar previews):
 - `VITE_SUPABASE_URL` = URL do projeto Supabase.
 - `VITE_SUPABASE_PUBLISHABLE_KEY` = chave `sb_publishable_` do projeto.
 
-Essas variáveis `VITE_*` são incorporadas ao JavaScript durante o build. Após alterá-las, execute um novo deploy. Nunca coloque `service_role` ou `sb_secret_` no frontend.
+**Importante:** não basta cadastrá-las em **Settings > Variables & Secrets** do Worker, pois essa área configura variáveis disponíveis em tempo de execução. O Vite precisa delas durante o build para incorporá-las ao frontend. Depois de salvar as variáveis de build, faça um novo build/deploy. A chave `sb_publishable_` é própria para uso no frontend; nunca coloque `service_role` ou `sb_secret_` no navegador.
 
 Em **Settings > Domains & Routes**, habilite o endereço `workers.dev` ou associe um domínio próprio. Sem um domínio/rota habilitado, o Worker pode estar implantado, mas não terá endereço público acessível.
 
