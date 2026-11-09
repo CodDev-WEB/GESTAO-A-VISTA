@@ -230,7 +230,7 @@ function Admin(){
   setFile(f);setMessage('');setParseError('');setPreview([])
   const finish=(rawRows:Record<string,unknown>[])=>{
    const rows=rawRows.filter(raw=>Object.values(raw).some(value=>value!==null&&value!==undefined&&String(value).trim()!=='')).map(raw=>{
-    const fields=new Map(Object.entries(raw).map(([key,value])=>[normalizeHeader(key),value]))
+    const fields=new Map<string,unknown>(Object.entries(raw).map(([key,value])=>[normalizeHeader(key),value] as [string,unknown]))
     const get=(...names:string[])=>{for(const name of names){const value=fields.get(normalizeHeader(name));if(value!==undefined&&value!==null&&String(value).trim()!=='')return value}return ''}
     return {
      data:normalizeDate(get('data','date')),
@@ -259,7 +259,7 @@ function Admin(){
  }
  async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');setParseError('');try{
   const sellerKey=(row:ImportRow)=>(row.email?row.email.trim().toLocaleLowerCase('pt-BR'):normalizeHeader(row.vendedora))
-  const unique=[...new Map(preview.map(r=>[sellerKey(r),r])).values()]
+  const unique=[...new Map<string,ImportRow>(preview.map(r=>[sellerKey(r),r] as [string,ImportRow])).values()]
   const sellerMap=new Map<string,string>()
   for(const row of unique){
    let query=supabase.from('sellers').select('id').limit(1)
