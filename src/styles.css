@@ -94,11 +94,12 @@
 }
 @media(orientation:portrait){
  .full-dashboard{height:100dvh;overflow:hidden}
- .full-dashboard>.dash-main{grid-template-columns:1fr 1fr;column-gap:8px;padding-left:10px;padding-right:10px}
- .full-dashboard .ranking-section{grid-column:1/-1;grid-row:4}
- .full-dashboard .table-section{grid-column:1/-1;grid-row:5}
- .full-dashboard .ideas-section{grid-row:6}
- .full-dashboard .dash-footer{grid-row:7}
+ .full-dashboard>.dash-main{grid-template-columns:1fr;grid-template-rows:auto auto auto auto minmax(0,1fr) minmax(0,1fr) auto;column-gap:8px;padding-left:10px;padding-right:10px}
+ .full-dashboard .welcome-line,.full-dashboard .period-row,.full-dashboard .metrics-grid,.full-dashboard .goal-progress{grid-column:1;grid-row:auto}
+ .full-dashboard .ranking-section{grid-column:1;grid-row:5}
+ .full-dashboard .table-section{grid-column:1;grid-row:6}
+ .full-dashboard .ideas-section{grid-column:1;grid-row:7}
+ .full-dashboard .dash-footer{display:none!important}
 }
 
 /* TV layout refinement: stable columns, safe text wrapping and animated ranking window */
