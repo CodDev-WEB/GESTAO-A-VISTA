@@ -257,12 +257,42 @@ function Admin(){
    Papa.parse<Record<string,unknown>>(f,{header:true,delimiter:'',skipEmptyLines:'greedy',complete:r=>finish(r.data),error:e=>setParseError(e.message)})
   }
  }
- async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');try{
-  const unique=[...new Map(preview.map(r=>[(r.email||r.vendedora.toLowerCase()).toLowerCase(),r])).values()]
+ async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');setParseError('');try{
+  const sellerKey=(row:ImportRow)=>(row.email?row.email.trim().toLocaleLowerCase('pt-BR'):normalizeHeader(row.vendedora))
+  const unique=[...new Map(preview.map(r=>[sellerKey(r),r])).values()]
   const sellerMap=new Map<string,string>()
-  for(const row of unique){let query=supabase.from('sellers').select('id').limit(1);query=row.email?query.eq('email',row.email):query.ilike('full_name',row.vendedora);const {data,error}=await query.maybeSingle();if(error)throw error;let id=data?.id as string|undefined;if(!id){const {data:created,error:e}=await supabase.from('sellers').insert({full_name:row.vendedora,email:row.email||null}).select('id').single();if(e)throw e;id=created.id}else{const {error:e}=await supabase.from('sellers').update({full_name:row.vendedora}).eq('id',id);if(e)throw e}if(!id)throw new Error('Não foi possível identificar ou cadastrar a colaboradora: '+row.vendedora);sellerMap.set((row.email||row.vendedora.toLowerCase()).toLowerCase(),id)}
-  for(const row of preview){const id=sellerMap.get((row.email||row.vendedora.toLowerCase()).toLowerCase());if(!id)continue;const {error}=await supabase.from('sales_daily').upsert({seller_id:id,sale_date:row.data,revenue:Number(row.valor),sales_count:Math.round(Number(row.vendas)),source:'csv'}, {onConflict:'seller_id,sale_date'});if(error)throw error}
-  setMessage('Importação concluída. Registros da mesma vendedora e data foram atualizados sem duplicidade.');setPreview([]);setFile(null);await data.load()
+  for(const row of unique){
+   let query=supabase.from('sellers').select('id').limit(1)
+   query=row.email?query.ilike('email',row.email.trim()):query.ilike('full_name',row.vendedora.trim())
+   const {data,error}=await query.maybeSingle()
+   if(error)throw error
+   let id=data?.id as string|undefined
+   if(!id){
+    const {data:created,error:e}=await supabase.from('sellers').insert({full_name:row.vendedora.trim(),email:row.email?.trim().toLocaleLowerCase('pt-BR')||null}).select('id').single()
+    if(e)throw e
+    id=created.id
+   }else{
+    const {error:e}=await supabase.from('sellers').update({full_name:row.vendedora.trim()}).eq('id',id)
+    if(e)throw e
+   }
+   if(!id)throw new Error('Não foi possível identificar ou cadastrar a colaboradora: '+row.vendedora)
+   sellerMap.set(sellerKey(row),id)
+  }
+  const totals=new Map<string,{seller_id:string;sale_date:string;revenue:number;sales_count:number}>()
+  for(const row of preview){
+   const id=sellerMap.get(sellerKey(row))
+   if(!id)throw new Error('Colaboradora não identificada: '+row.vendedora)
+   const key=id+'|'+row.data
+   const current=totals.get(key)||{seller_id:id,sale_date:row.data,revenue:0,sales_count:0}
+   current.revenue+=Number(row.valor)
+   current.sales_count+=Number(row.vendas)
+   totals.set(key,current)
+  }
+  const payload=[...totals.values()].map(row=>({...row,source:'csv'}))
+  const {error}=await supabase.from('sales_daily').upsert(payload,{onConflict:'seller_id,sale_date'})
+  if(error)throw error
+  setMessage('Importação concluída: '+preview.length+' linhas consolidadas em '+payload.length+' registros, sem duplicidade por colaboradora e data.')
+  setPreview([]);setFile(null);await data.load()
  }catch(e){setParseError(e instanceof Error?e.message:'Falha na importação.')}finally{setSaving(false)}}
  async function addSeller(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('sellers').insert({full_name:sellerName,email:sellerEmail||null});if(error)setMessage(error.message);else{setSellerName('');setSellerEmail('');setMessage('Colaboradora cadastrada.');await data.load()}}
  async function saveGoal(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('goals').upsert(goal,{onConflict:'month'});setMessage(error?.message||'Meta salva.');await data.load()}
