@@ -191,7 +191,6 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
  const rows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,period,date),[data.sellers,data.sales,data.recognitions,period,date])
  const monthRows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,'month',date),[data.sellers,data.sales,data.recognitions,date])
- const dayRows=useMemo(()=>rankRows(data.sellers,data.sales,data.recognitions,'day',date),[data.sellers,data.sales,data.recognitions,date])
  const allMonth=monthRows.reduce((n,r)=>n+r.revenue,0)
  const periodRevenue=rows.reduce((n,r)=>n+r.revenue,0),periodCount=rows.reduce((n,r)=>n+r.count,0)
  const periodTicket=periodCount?rows.reduce((n,r)=>n+r.ticket*r.count,0)/periodCount:0
