@@ -4,9 +4,9 @@ import { Navigate, Route, Routes, Link, useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import {
-  Trophy, TrendingUp, ShoppingBag, Target, Star, Lightbulb, Medal,
+  Trophy, TrendingUp, ShoppingBag, Target, Star, Medal,
   Upload, Users, LogOut, LayoutDashboard, CalendarDays, Plus, Monitor,
-  RefreshCw, ChevronRight, Sparkles, ShieldCheck, AlertCircle, CheckCircle2,
+  RefreshCw, ChevronRight, ShieldCheck, AlertCircle, CheckCircle2,
   Crown, ArrowUpRight, ImagePlus, X
 } from 'lucide-react'
 import { supabase, hasSupabase } from './lib/supabase'
@@ -340,7 +340,7 @@ function Admin(){
    current.revenue+=amount
    if(amount>=0)current.gross_revenue+=amount
    else current.refund_amount+=Math.abs(amount)
-   current.sales_count+=Number(row.vendas)
+   if(amount>=0)current.sales_count+=Number(row.vendas)
    totals.set(key,current)
   }
   const payload=[...totals.values()].map(row=>({...row,source:'csv'}))
