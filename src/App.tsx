@@ -37,18 +37,19 @@ const parseImportAmount = (value:unknown):number|string => {
 
 const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0})
 const exactMoney = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
-const today = () => new Date().toLocaleDateString('en-CA')
+const toISODate = (date:Date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+const today = () => toISODate(new Date())
 const monthKey = (date:string) => date.slice(0,7)+'-01'
 const monthLabel = (date:string) => new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})
 const initial = (name:string) => name.split(' ').filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()
 const initialsColor = (i:number) => ['#e2b66d','#8ca6b8','#ba91a7','#82a998','#9b91bc'][i%5]
-const dateRange = (period:Period, date:string) => {
+const dateRange = (period:Period, date:string):[string,string] => {
   const d = new Date(date+'T12:00:00')
-  if(period==='day') return [date,date]
-  if(period==='month') return [date.slice(0,7)+'-01',new Date(d.getFullYear(),d.getMonth()+1,0).toLocaleDateString('en-CA')]
+  if(period==='day'||period==='range') return [date,date]
+  if(period==='month') return [date.slice(0,7)+'-01',toISODate(new Date(d.getFullYear(),d.getMonth()+1,0))]
   const day=(d.getDay()+6)%7; const start=new Date(d); start.setDate(d.getDate()-day)
   const end=new Date(start); end.setDate(start.getDate()+6)
-  return [start.toLocaleDateString('en-CA'),end.toLocaleDateString('en-CA')]
+  return [toISODate(start),toISODate(end)]
 }
 const demoSellers:Seller[]=[
   {id:'d1',full_name:'Mariana Costa',email:null,photo_url:null,active:true},
@@ -155,6 +156,13 @@ function useData(){
   })
   return()=>{alive=false;subscription.unsubscribe()}
  },[load])
+ useEffect(()=>{
+  let alive=true
+  const refresh=()=>{if(alive&&document.visibilityState==='visible')void load()}
+  const timer=window.setInterval(refresh,60000)
+  document.addEventListener('visibilitychange',refresh)
+  return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh)}
+ },[load])
  return {sellers,sales,recognitions,goals,setSellers,setSales,setRecognitions,setGoals,load,busy,error}
 }
 
@@ -179,7 +187,8 @@ function rankRows(sellers:Seller[],sales:Sale[],recognitions:Recognition[],perio
   const rows=sales.filter(x=>x.seller_id===s.id&&x.sale_date>=start&&x.sale_date<=end)
   const revenue=rows.reduce((n,x)=>n+Number(x.revenue),0),count=rows.reduce((n,x)=>n+Number(x.sales_count),0)
   const grossRevenue=rows.reduce((n,x)=>n+Number(x.gross_revenue??Math.max(Number(x.revenue),0)),0)
-  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0,stars:recognitions.filter(x=>x.seller_id===s.id).reduce((n,x)=>n+x.stars,0)}
+  const stars=recognitions.filter(x=>x.seller_id===s.id&&x.recognized_at>=start&&x.recognized_at<=end).reduce((n,x)=>n+Number(x.stars||0),0)
+  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0,stars}
  }).sort((a,b)=>b.revenue-a.revenue||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
 }
 function Podium({rows}:{rows:ReturnType<typeof rankRows>}){
