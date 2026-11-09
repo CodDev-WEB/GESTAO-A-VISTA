@@ -59,24 +59,31 @@ const defaultGoal:Goal={month:monthKey(today()),monthly_target:60000,daily_targe
 function useSession(){
  const [user,setUser]=useState<any>(null),[profile,setProfile]=useState<Profile|null>(null),[loading,setLoading]=useState(Boolean(supabase))
  useEffect(()=>{
-  if(!supabase){setLoading(false);return}
+  const client=supabase
+  if(!client){setLoading(false);return}
   let alive=true
-  supabase.auth.getSession().then(async({data})=>{
-   if(!alive)return
-   setUser(data.session?.user??null)
-   if(data.session?.user){
-    const {data:p}=await supabase!.from('profiles').select('*').eq('id',data.session.user.id).maybeSingle()
-    if(alive)setProfile(p as Profile|null)
-   }
+  let request=0
+  const fetchProfile=async(userId:string)=>{
+   const current=++request
+   const {data:p}=await client.from('profiles').select('*').eq('id',userId).maybeSingle()
+   if(alive&&current===request)setProfile(p as Profile|null)
    if(alive)setLoading(false)
-  })
-  const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{
+  }
+  client.auth.getSession().then(({data})=>{
    if(!alive)return
-   setUser(session?.user??null)
-   if(session?.user){
-    const {data:p}=await supabase!.from('profiles').select('*').eq('id',session.user.id).maybeSingle()
-    if(alive)setProfile(p as Profile|null)
-   }else setProfile(null)
+   const sessionUser=data.session?.user??null
+   setUser(sessionUser)
+   if(sessionUser)void fetchProfile(sessionUser.id)
+   else{setProfile(null);setLoading(false)}
+  }).catch(()=>{if(alive)setLoading(false)})
+  const {data:{subscription}}=client.auth.onAuthStateChange((_event,session)=>{
+   if(!alive)return
+   const sessionUser=session?.user??null
+   setUser(sessionUser)
+   if(sessionUser){
+    // Agenda a consulta fora do callback de autenticação para evitar bloqueio do cliente Supabase.
+    Promise.resolve().then(()=>{if(alive)void fetchProfile(sessionUser.id)})
+   }else{request++;setProfile(null);setLoading(false)}
   })
   return()=>{alive=false;subscription.unsubscribe()}
  },[])
@@ -85,20 +92,30 @@ function useSession(){
 function useData(){
  const [sellers,setSellers]=useState<Seller[]>(demoSellers),[sales,setSales]=useState<Sale[]>(demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(demoRecognitions),[goals,setGoals]=useState<Goal[]>([defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState('')
  const load=useCallback(async()=>{
-  if(!supabase)return
+  const client=supabase
+  if(!client)return
   setBusy(true);setError('')
   const [a,b,c,d]=await Promise.all([
-   supabase.from('sellers').select('*').order('full_name'),
-   supabase.from('sales_daily').select('*').order('sale_date',{ascending:false}),
-   supabase.from('recognitions').select('*').order('recognized_at',{ascending:false}),
-   supabase.from('goals').select('*').order('month',{ascending:false})
+   client.from('sellers').select('*').order('full_name'),
+   client.from('sales_daily').select('*').order('sale_date',{ascending:false}),
+   client.from('recognitions').select('*').order('recognized_at',{ascending:false}),
+   client.from('goals').select('*').order('month',{ascending:false})
   ])
   const err=a.error||b.error||c.error||d.error
   if(err)setError(err.message)
   else{setSellers(a.data as Seller[]);setSales(b.data as Sale[]);setRecognitions(c.data as Recognition[]);setGoals(d.data as Goal[])}
   setBusy(false)
  },[])
- useEffect(()=>{void load()},[load])
+ useEffect(()=>{
+  const client=supabase
+  if(!client)return
+  let alive=true
+  client.auth.getSession().then(({data})=>{if(alive&&data.session)void load()})
+  const {data:{subscription}}=client.auth.onAuthStateChange((_event,session)=>{
+   if(session)Promise.resolve().then(()=>{if(alive)void load()})
+  })
+  return()=>{alive=false;subscription.unsubscribe()}
+ },[load])
  return {sellers,sales,recognitions,goals,setSellers,setSales,setRecognitions,setGoals,load,busy,error}
 }
 
