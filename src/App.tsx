@@ -25,8 +25,12 @@ const parseImportAmount = (value:unknown):number|string => {
  const raw=String(value??'').trim()
  if(!raw)return ''
  let s=raw.replace(/R\$/gi,'').replace(/\s/g,'')
- if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.')
- else if(s.includes(','))s=s.replace(',','.')
+ if(s.includes(',')&&s.includes('.')){
+  const decimalSeparator=s.lastIndexOf(',')>s.lastIndexOf('.')?',':'.'
+  const thousandsSeparator=decimalSeparator===','?'.':','
+  s=s.split(thousandsSeparator).join('')
+  if(decimalSeparator===',')s=s.replace(',', '.')
+ }else if(s.includes(','))s=s.replace(',', '.')
  const n=Number(s)
  return Number.isFinite(n)?n:''
 }
@@ -119,15 +123,24 @@ function useData(){
   if(!client)return
   setBusy(true);setError('')
   try{
+   const fetchAll=async(table:'sellers'|'sales_daily'|'recognitions'|'goals',column:string,ascending=true)=>{
+    const all:Record<string,unknown>[]=[]
+    const pageSize=1000
+    for(let offset=0;;offset+=pageSize){
+     const {data,error}=await client.from(table).select('*').order(column,{ascending}).range(offset,offset+pageSize-1)
+     if(error)throw error
+     all.push(...(data||[]) as Record<string,unknown>[])
+     if(!data||data.length<pageSize)break
+    }
+    return all
+   }
    const [a,b,c,d]=await Promise.all([
-    client.from('sellers').select('*').order('full_name'),
-    client.from('sales_daily').select('*').order('sale_date',{ascending:false}),
-    client.from('recognitions').select('*').order('recognized_at',{ascending:false}),
-    client.from('goals').select('*').order('month',{ascending:false})
+    fetchAll('sellers','full_name'),
+    fetchAll('sales_daily','sale_date',false),
+    fetchAll('recognitions','recognized_at',false),
+    fetchAll('goals','month',false)
    ])
-   const err=a.error||b.error||c.error||d.error
-   if(err)throw err
-   setSellers(a.data as Seller[]);setSales(b.data as Sale[]);setRecognitions(c.data as Recognition[]);setGoals(d.data as Goal[])
+   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[])
   }catch(e){
    setError(e instanceof Error?e.message:'Não foi possível carregar os dados do Supabase.')
   }finally{setBusy(false)}
@@ -255,7 +268,7 @@ function Admin(){
     finish(XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:true}))
    }).catch(e=>setParseError(e instanceof Error?e.message:'Falha ao ler o arquivo Excel.'))
   }else{
-   Papa.parse<Record<string,unknown>>(f,{header:true,delimiter:'',skipEmptyLines:'greedy',complete:r=>finish(r.data),error:e=>setParseError(e.message)})
+   Papa.parse<Record<string,unknown>>(f,{header:true,delimiter:'',skipEmptyLines:'greedy',complete:r=>{if(r.errors.length){setParseError('Falha ao interpretar o CSV na linha '+(r.errors[0].row+2)+': '+r.errors[0].message);return}finish(r.data)},error:e=>setParseError(e.message)})
   }
  }
  async function importCsv(){if(!supabase||!preview.length)return;setSaving(true);setMessage('');setParseError('');try{
