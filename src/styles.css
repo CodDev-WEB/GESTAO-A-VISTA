@@ -402,3 +402,13 @@
 .date-range-fields input{min-width:132px;max-width:170px;padding:8px 10px;border:1px solid #D5DDE3;border-radius:9px;background:#fff;color:#172538;font:inherit;font-size:13px}
 .date-range-fields input:focus{outline:2px solid #49C3D0;outline-offset:1px}
 @media(max-width:760px){.date-range-fields{width:100%}.date-range-fields label{flex:1}.date-range-fields input{min-width:0;width:100%}}
+
+
+/* Explicit, high-contrast recognition stars in the ranking */
+.ranking-stars{display:inline-flex;align-items:center;justify-content:flex-start;gap:2px;min-width:112px;white-space:nowrap;color:#D6A928}
+.ranking-stars svg{display:block;flex:0 0 13px;width:13px;height:13px;stroke:#C59620}
+.ranking-stars b{display:inline-block;margin-left:4px;font-size:10px;font-weight:800;color:#596575}
+.full-dashboard .ranking-stars{min-width:92px;gap:1px}
+.full-dashboard .ranking-stars svg{flex-basis:11px;width:11px;height:11px}
+.full-dashboard .ranking-stars b{font-size:9px}
+.full-dashboard .table-wrap th:last-child,.full-dashboard .table-wrap td:last-child{display:table-cell!important;visibility:visible!important}
