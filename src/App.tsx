@@ -57,7 +57,7 @@ const demoRecognitions:Recognition[]=[
 const defaultGoal:Goal={month:monthKey(today()),monthly_target:60000,daily_target:2500}
 
 function useSession(){
- const [user,setUser]=useState<any>(null),[profile,setProfile]=useState<Profile|null>(null),[loading,setLoading]=useState(Boolean(supabase))
+ const [user,setUser]=useState<any>(null),[profile,setProfile]=useState<Profile|null>(null),[loading,setLoading]=useState(Boolean(supabase)),[profileError,setProfileError]=useState('')
  useEffect(()=>{
   const client=supabase
   if(!client){setLoading(false);return}
@@ -65,29 +65,39 @@ function useSession(){
   let request=0
   const fetchProfile=async(userId:string)=>{
    const current=++request
-   const {data:p}=await client.from('profiles').select('*').eq('id',userId).maybeSingle()
-   if(alive&&current===request)setProfile(p as Profile|null)
-   if(alive)setLoading(false)
+   setLoading(true);setProfileError('')
+   try{
+    const {data:p,error}=await client.from('profiles').select('*').eq('id',userId).maybeSingle()
+    if(error)throw error
+    if(alive&&current===request){
+     setProfile(p as Profile|null)
+     if(!p)setProfileError('Nenhum perfil foi encontrado para este usuário em public.profiles. Confirme se o usuário existe em Authentication > Users e se o SQL de criação do perfil foi executado.')
+    }
+   }catch(e){
+    if(alive&&current===request){
+     setProfile(null)
+     setProfileError(e instanceof Error?e.message:'Falha ao consultar public.profiles no Supabase.')
+    }
+   }finally{if(alive&&current===request)setLoading(false)}
   }
-  client.auth.getSession().then(({data})=>{
+  client.auth.getSession().then(({data,error})=>{
    if(!alive)return
+   if(error){setProfileError(error.message);setLoading(false);return}
    const sessionUser=data.session?.user??null
    setUser(sessionUser)
    if(sessionUser)void fetchProfile(sessionUser.id)
-   else{setProfile(null);setLoading(false)}
-  }).catch(()=>{if(alive)setLoading(false)})
+   else{setProfile(null);setProfileError('');setLoading(false)}
+  }).catch(e=>{if(alive){setProfileError(e instanceof Error?e.message:'Falha ao recuperar a sessão.');setLoading(false)}})
   const {data:{subscription}}=client.auth.onAuthStateChange((_event,session)=>{
    if(!alive)return
    const sessionUser=session?.user??null
    setUser(sessionUser)
-   if(sessionUser){
-    // Agenda a consulta fora do callback de autenticação para evitar bloqueio do cliente Supabase.
-    Promise.resolve().then(()=>{if(alive)void fetchProfile(sessionUser.id)})
-   }else{request++;setProfile(null);setLoading(false)}
+   if(sessionUser)Promise.resolve().then(()=>{if(alive)void fetchProfile(sessionUser.id)})
+   else{request++;setProfile(null);setProfileError('');setLoading(false)}
   })
   return()=>{alive=false;subscription.unsubscribe()}
  },[])
- return {user,profile,loading}
+ return {user,profile,loading,profileError}
 }
 function useData(){
  const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState('')
@@ -186,11 +196,11 @@ function Metric({icon,label,value,detail,tone}:{icon:ReactNode;label:string;valu
  return <div className="metric-card"><div className={'metric-icon '+tone}>{icon}</div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>
 }
 function Guard({children,role}:{children:ReactNode;role:'admin'|'viewer'}){
- const {user,profile,loading}=useSession()
+ const {user,profile,loading,profileError}=useSession()
  if(!hasSupabase)return <Navigate to={role==='admin'?'/admin/login':'/viewer/login'} replace/>
  if(loading)return <div className="loading-screen">Verificando acesso...</div>
  if(!user)return <Navigate to={role==='admin'?'/admin/login':'/viewer/login'} replace/>
- if(!profile?.active)return <div className="loading-screen">Acesso não liberado. Solicite ao administrador a ativação do seu perfil.</div>
+ if(!profile?.active)return <div className="loading-screen"><div>Acesso não liberado. {profileError||'O perfil está inativo ou não foi encontrado.'}</div></div>
  if(role==='admin'&&profile.role!=='admin')return <Navigate to="/viewer" replace/>
  if(role==='viewer'&&profile.role!=='viewer')return <Navigate to="/admin" replace/>
  return <>{children}</>
