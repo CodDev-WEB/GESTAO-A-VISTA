@@ -202,24 +202,16 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  useEffect(()=>{if(ideas.length<2)return;const t=setInterval(()=>setIdeaIndex(i=>(i+1)%ideas.length),6500);return()=>clearInterval(t)},[ideas.length])
  const currentIdea=ideas.length?ideas[ideaIndex%ideas.length]:null
  const recognitionSeller=currentIdea?data.sellers.find(s=>s.id===currentIdea.seller_id):null
- const [rankingStart,setRankingStart]=useState(0),[rankingDirection,setRankingDirection]=useState(1),[rankingMotion,setRankingMotion]=useState(0)
+ const [rankingStep,setRankingStep]=useState(0)
  const rankingPageSize=6
  const rankingMaxStart=Math.max(0,rows.length-rankingPageSize)
- useEffect(()=>{
-  setRankingStart(0);setRankingDirection(1)
- },[rows.length,period,date])
+ const rankingStart=rankingStep<=rankingMaxStart?rankingStep:2*rankingMaxStart-rankingStep
+ useEffect(()=>{setRankingStep(0)},[rows.length,period,date])
  useEffect(()=>{
   if(!full||rankingMaxStart===0)return
-  const timer=window.setInterval(()=>{
-   setRankingStart(current=>{
-    if(current>=rankingMaxStart){setRankingDirection(-1);return Math.max(0,current-1)}
-    if(current<=0){setRankingDirection(1);return Math.min(rankingMaxStart,current+1)}
-    return current+rankingDirection
-   })
-   setRankingMotion(value=>value+1)
-  },2600)
+  const timer=window.setInterval(()=>setRankingStep(current=>current>=2*rankingMaxStart?0:current+1),2600)
   return()=>window.clearInterval(timer)
- },[full,rankingMaxStart,rankingDirection])
+ },[full,rankingMaxStart])
  const visibleRankingRows=full?rows.slice(rankingStart,rankingStart+rankingPageSize):rows
  return <div className={full?'dashboard full-dashboard':'dashboard'}>
   <Header/><DemoNotice/>{data.error&&<div className="error-box" role="alert">Falha ao carregar os dados: {data.error}</div>}
@@ -234,7 +226,7 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
    </section>
    <section className="goal-progress"><div className="goal-progress-head"><div><span className="eyebrow">ACOMPANHAMENTO DA META MENSAL</span><strong>{progress.toFixed(1)}% <small>alcançados</small></strong></div><span>{money(allMonth)} <small>de</small> {money(Number(goal.monthly_target))}</span></div><div className="progress-track"><div style={{width:progress+'%'}}/></div><div className="progress-footer"><span>Vamos juntas até o próximo marco.</span><strong>Faltam {money(Math.max(0,Number(goal.monthly_target)-allMonth))}</strong></div></section>
    <section className="ranking-section"><div className="section-head"><div><span className="eyebrow">DESTAQUES DA EQUIPE</span><h2>Nosso pódio <span>de resultados</span></h2></div><span className="period-tag">{periodText(period)}</span></div><Podium rows={rows.slice(0,3)}/></section>
-   <section className="table-section"><div className="section-head"><div><span className="eyebrow">TODO MUNDO FAZ A DIFERENÇA</span><h2>Ranking <span>de vendas</span></h2></div><span className="subtle-count">{rows.length} colaboradoras</span></div><div className="table-wrap"><table><thead><tr><th>POSIÇÃO</th><th>VENDEDORA</th><th>VALOR VENDIDO</th><th>VENDAS</th><th>TICKET MÉDIO</th><th>ESTRELAS</th></tr></thead><tbody key={full?rankingMotion:'all'} className={full?'ranking-animated-body':''}>{visibleRankingRows.map((r,visibleIndex)=>{const i=full?rankingStart+visibleIndex:visibleIndex;return <tr className={full?'ranking-animated-row':''} key={r.seller.id}><td><span className={'rank-number '+(i<3?'top-rank':'')}>{String(i+1).padStart(2,'0')}</span></td><td><div className="seller-cell"><Avatar seller={r.seller} size="sm" index={i}/><strong>{r.seller.full_name}</strong>{i===0&&<span className="leader-chip">LÍDER</span>}</div></td><td className="money-cell">{exactMoney(r.revenue)}</td><td>{r.count}</td><td>{exactMoney(r.ticket)}</td><td><div className="stars-cell"><Star size={14} fill={r.stars?'currentColor':'none'}/><b>{r.stars}</b></div></td></tr>})}</tbody></table>{rows.length===0&&<div className="empty-state">Nenhum resultado para este período.</div>}</div></section>
+   <section className="table-section"><div className="section-head"><div><span className="eyebrow">TODO MUNDO FAZ A DIFERENÇA</span><h2>Ranking <span>de vendas</span></h2></div><span className="subtle-count">{rows.length} colaboradoras</span></div><div className="table-wrap"><table><thead><tr><th>POSIÇÃO</th><th>VENDEDORA</th><th>VALOR VENDIDO</th><th>VENDAS</th><th>TICKET MÉDIO</th><th>ESTRELAS</th></tr></thead><tbody key={full?rankingStep:'all'} className={full?'ranking-animated-body':''}>{visibleRankingRows.map((r,visibleIndex)=>{const i=full?rankingStart+visibleIndex:visibleIndex;return <tr className={full?'ranking-animated-row':''} key={r.seller.id}><td><span className={'rank-number '+(i<3?'top-rank':'')}>{String(i+1).padStart(2,'0')}</span></td><td><div className="seller-cell"><Avatar seller={r.seller} size="sm" index={i}/><strong>{r.seller.full_name}</strong>{i===0&&<span className="leader-chip">LÍDER</span>}</div></td><td className="money-cell">{exactMoney(r.revenue)}</td><td>{r.count}</td><td>{exactMoney(r.ticket)}</td><td><div className="stars-cell"><Star size={14} fill={r.stars?'currentColor':'none'}/><b>{r.stars}</b></div></td></tr>})}</tbody></table>{rows.length===0&&<div className="empty-state">Nenhum resultado para este período.</div>}</div></section>
    <section className="ideas-section"><div className="ideas-title"><div className="ideas-icon"><Lightbulb/></div><div><span className="eyebrow">CULTURA QUE FAZ A DIFERENÇA</span><h2>Boas ideias merecem <em>destaque.</em></h2></div></div><div className="ticker-card">{currentIdea&&recognitionSeller?<><div className="ticker-profile"><Avatar seller={recognitionSeller} size="lg"/><div><strong>{recognitionSeller.full_name}</strong><span>{currentIdea.kind==='ideia_implementada'?'IDEIA IMPLEMENTADA':'BOA PRÁTICA'}</span></div></div><div className="ticker-copy"><strong>{currentIdea.title}</strong><p>{currentIdea.description}</p></div><div className="ticker-stars">{Array.from({length:currentIdea.stars},(_,i)=><Star key={i} fill="currentColor"/>)}</div><div className="ticker-counter">{String((ideaIndex%Math.max(ideas.length,1))+1).padStart(2,'0')} / {String(ideas.length).padStart(2,'0')}</div></>:<div className="empty-ideas"><Sparkles/><strong>As próximas boas ideias podem ser suas.</strong><span>As conquistas da equipe aparecerão aqui.</span></div>}</div></section>
   </main>
  </div>
