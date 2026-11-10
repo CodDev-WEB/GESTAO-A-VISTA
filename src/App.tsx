@@ -192,7 +192,6 @@ const periodTabs:[Period,string][]=[['day','Diário'],['week','Semanal'],['month
 const sellerColor=(id:string)=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return ['#B07A5A','#6E8CA6','#7E9A86','#8A7FB0','#5E8F9E','#A0708A','#7A8F5E','#9A7A50'][h%8]}
 const clock=(d:Date)=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
 const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})
-const shortDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR')
 const prefersReducedMotion=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 function TvAvatar({seller,className}:{seller:Seller;className:string}){
  return <span className={'tv-avatar '+className} style={{background:sellerColor(seller.id)}}>{seller.photo_url?<img src={seller.photo_url} alt=""/>:initial(seller.full_name)}</span>
@@ -236,6 +235,7 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
  const visibleActions=actionRanking.slice(actions.start,actions.start+4)
  const [first,second,third]=rows
  const loading=data.busy&&!data.updatedAt
+ const emptySales=data.error&&!data.updatedAt?'Não foi possível carregar os dados. Nova tentativa em 1 minuto.':loading?'Carregando dados…':'Nenhuma venda registrada neste período.'
  return <div className="tv">
   <header className="tv-header">
    <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>O resultado é de todos nós.</h1></div>
@@ -244,9 +244,9 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
     {period==='range'
      ?<div className="tv-dates"><label>De<input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
      :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
-    <span className="tv-clock">{period==='range'?shortDate(date)+' a '+shortDate(rangeEnd):longDate(date)}, <strong>{clock(now)}</strong></span>
+    <span className="tv-clock">{period!=='range'&&<>{longDate(date)}, </>}<strong>{clock(now)}</strong></span>
     {data.error
-     ?<span className="tv-status is-offline" role="status">Sem atualização {data.updatedAt?'desde '+clock(data.updatedAt):'dos dados'}</span>
+     ?<span className="tv-status is-offline" role="status">{data.updatedAt?'Sem atualização desde '+clock(data.updatedAt):'Dados não carregados'}</span>
      :<span className="tv-status" role="status">{data.updatedAt?'Atualizado às '+clock(data.updatedAt):'Carregando dados'}</span>}
    </div>
   </header>
@@ -278,7 +278,7 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
        <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{money(r.revenue)}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
       </div>:null)}
      </div>
-    </div>:<p className="tv-empty">{loading?'Carregando dados…':'Nenhuma venda registrada neste período.'}</p>}
+    </div>:<p className="tv-empty">{emptySales}</p>}
    </div>
 
    <div className="tv-panel tv-ranking">
@@ -291,7 +291,7 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
       <td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td>
      </tr>})}</tbody>
     </table>
-    {rows.length===0&&<p className="tv-empty">{loading?'Carregando dados…':'Nenhuma venda registrada neste período.'}</p>}
+    {rows.length===0&&<p className="tv-empty">{emptySales}</p>}
    </div>
 
    <div className="tv-panel tv-culture">
