@@ -206,10 +206,10 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  const periodLabel=period==='day'?'no dia':period==='week'?'na semana':period==='range'?'no período selecionado':'no mês'
  const goal=data.goals.find(g=>g.month===monthKey(date))||defaultGoal
  const progress=goal.monthly_target?Math.max(0,Math.min(100,allMonth/Number(goal.monthly_target)*100)):0
- const [recognitionStart,recognitionDefaultEnd]=dateRange(period,date)
- const recognitionEnd=period==='range'&&endDate>=date?endDate:recognitionDefaultEnd
+ // O ranking de boas ações é histórico e independente dos filtros de vendas.
+ // Alterar Diário/Semanal/Mensal/Período não modifica sua pontuação nem seu histórico.
  const actionRanking=data.sellers.filter(s=>s.active).map(s=>{
-  const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0&&r.recognized_at.slice(0,10)>=recognitionStart&&r.recognized_at.slice(0,10)<=recognitionEnd)
+  const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0)
   return {seller:s,stars:entries.reduce((n,r)=>n+Number(r.stars||0),0),actions:entries.length}
  }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
  const [actionStep,setActionStep]=useState(0)
@@ -217,11 +217,11 @@ function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:bool
  const actionMaxStart=Math.max(0,actionRanking.length-actionPageSize)
  const safeActionStep=Math.min(actionStep,2*actionMaxStart)
  const actionStart=safeActionStep<=actionMaxStart?safeActionStep:2*actionMaxStart-safeActionStep
- useEffect(()=>{setActionStep(0)},[actionRanking.length,period,date,endDate])
+ useEffect(()=>{setActionStep(0)},[actionRanking.length])
  useEffect(()=>{if(!full||actionMaxStart===0)return;const timer=window.setInterval(()=>setActionStep(v=>v>=2*actionMaxStart?0:v+1),3000);return()=>clearInterval(timer)},[full,actionMaxStart])
  const visibleActionRows=full?actionRanking.slice(actionStart,actionStart+actionPageSize):actionRanking
  const recentRecognitions=data.recognitions
-  .filter(r=>r.stars>0&&r.recognized_at.slice(0,10)>=recognitionStart&&r.recognized_at.slice(0,10)<=recognitionEnd)
+  .filter(r=>r.stars>0)
   .sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at))
   .slice(0,3)
  const sellerById=new Map(data.sellers.map(s=>[s.id,s]))
