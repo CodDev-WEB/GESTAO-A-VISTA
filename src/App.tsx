@@ -4,10 +4,10 @@ import { Navigate, Route, Routes, Link, useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import {
-  Trophy, TrendingUp, ShoppingBag, Target, Star, Medal,
-  Upload, Users, LogOut, LayoutDashboard, CalendarDays, Plus, Monitor,
+  Trophy, TrendingUp, ShoppingBag, Target, Star,
+  Upload, Users, LogOut, LayoutDashboard, Plus, Monitor,
   RefreshCw, ChevronRight, ShieldCheck, AlertCircle, CheckCircle2,
-  Crown, ArrowUpRight, ImagePlus, X
+  ArrowUpRight, ImagePlus, X
 } from 'lucide-react'
 import { supabase, hasSupabase } from './lib/supabase'
 
@@ -118,7 +118,7 @@ function useSession(){
  return {user,profile,loading,profileError}
 }
 function useData(){
- const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date())
  const load=useCallback(async()=>{
   const client=supabase
   if(!client)return
@@ -141,7 +141,7 @@ function useData(){
     fetchAll('recognitions','recognized_at',false),
     fetchAll('goals','month',false)
    ])
-   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[])
+   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setUpdatedAt(new Date())
   }catch(e){
    setError(e instanceof Error?e.message:'Não foi possível carregar os dados do Supabase.')
   }finally{setBusy(false)}
@@ -163,16 +163,13 @@ function useData(){
   document.addEventListener('visibilitychange',refresh)
   return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh)}
  },[load])
- return {sellers,sales,recognitions,goals,setSellers,setSales,setRecognitions,setGoals,load,busy,error}
+ return {sellers,sales,recognitions,goals,setSellers,setSales,setRecognitions,setGoals,load,busy,error,updatedAt}
 }
 
 function Avatar({seller,size='md',index=0}:{seller:Seller;size?:'sm'|'md'|'lg'|'xl';index?:number}){
  return <div className={'avatar '+size} style={{background:initialsColor(index)}}>{seller.photo_url?<img src={seller.photo_url} alt={seller.full_name}/>:initial(seller.full_name)}</div>
 }
 function Brand(){return <div className="brand"><div className="brand-mark"><Trophy size={20}/></div><div><strong>gestão<span>à vista</span></strong><small>RESULTADOS QUE INSPIRAM</small></div></div>}
-function Header({admin=false}:{admin?:boolean}){
- return <header className="topbar"><Brand/><div className="topbar-right"><span className="live-dot"/> <span className="live-label">DADOS ATUALIZADOS</span>{admin&&<Link to="/" className="light-link"><Monitor size={16}/> Painel TV</Link>}</div></header>
-}
 function DemoNotice(){return !hasSupabase?<div className="demo-notice"><AlertCircle size={15}/> MODO DEMONSTRAÇÃO — conecte o Supabase para autenticação e dados reais.</div>:null}
 function Login({role}:{role:'admin'|'viewer'}){
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
@@ -190,75 +187,133 @@ function rankRows(sellers:Seller[],sales:Sale[],period:Period,date:string,rangeE
   return {seller:s,revenue,count,ticket:count?grossRevenue/count:0}
  }).sort((a,b)=>b.revenue-a.revenue||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
 }
-function Podium({rows}:{rows:ReturnType<typeof rankRows>}){
- const ordered=rows.slice(0,3)
- return <div className="podium">{ordered.map((r,i)=>{const rank=i+1;return <div className={'podium-person place-'+rank} key={r.seller.id}><div className="podium-crown">{rank===1?<Crown/>:<Medal/>}</div><div className="podium-avatar"><Avatar seller={r.seller} size={rank===1?'xl':'lg'} index={rank}/><span className="podium-rank">{rank}</span></div><strong>{r.seller.full_name}</strong><b>{money(r.revenue)}</b><small>{r.count} vendas</small><div className="podium-base"><span>{rank===1?'1º LUGAR':rank===2?'2º LUGAR':'3º LUGAR'}</span></div></div>})}</div>
+const periodTag=(p:Period)=>p==='day'?'Hoje':p==='week'?'Esta semana':p==='range'?'Período selecionado':'Este mês'
+const periodTabs:[Period,string][]=[['day','Diário'],['week','Semanal'],['month','Mensal'],['range','Período']]
+const sellerColor=(id:string)=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return ['#B07A5A','#6E8CA6','#7E9A86','#8A7FB0','#5E8F9E','#A0708A','#7A8F5E','#9A7A50'][h%8]}
+const clock=(d:Date)=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})
+const shortDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR')
+const prefersReducedMotion=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+function TvAvatar({seller,className}:{seller:Seller;className:string}){
+ return <span className={'tv-avatar '+className} style={{background:sellerColor(seller.id)}}>{seller.photo_url?<img src={seller.photo_url} alt=""/>:initial(seller.full_name)}</span>
 }
-function periodText(p:Period){return p==='day'?'HOJE':p==='week'?'ESTA SEMANA':p==='range'?'PERÍODO PERSONALIZADO':'ESTE MÊS'}
-function Dashboard({data,full=false}:{data:ReturnType<typeof useData>;full?:boolean}){
+function TvStar(){return <svg className="tv-star" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}
+// Janela deslizante em vai e vem: mostra `size` itens e avança 1 posição a cada `interval` ms.
+function useSlidingWindow(length:number,size:number,interval:number,resetKey:string){
+ const maxStart=Math.max(0,length-size)
+ const [step,setStep]=useState(0)
+ useEffect(()=>{setStep(0)},[resetKey,length])
+ useEffect(()=>{
+  if(maxStart===0||prefersReducedMotion())return
+  const timer=window.setInterval(()=>setStep(v=>v>=2*maxStart?0:v+1),interval)
+  return()=>window.clearInterval(timer)
+ },[maxStart,interval])
+ const safe=Math.min(step,2*maxStart)
+ return {start:safe<=maxStart?safe:2*maxStart-safe,key:safe}
+}
+function Dashboard({data}:{data:ReturnType<typeof useData>}){
  const [period,setPeriod]=useState<Period>('month'),[date,setDate]=useState(today()),[endDate,setEndDate]=useState(today()),[now,setNow]=useState(new Date())
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
- const rows=useMemo(()=>rankRows(data.sellers,data.sales,period,date,endDate>=date?endDate:date),[data.sellers,data.sales,data.recognitions,period,date,endDate])
- const monthRows=useMemo(()=>rankRows(data.sellers,data.sales,'month',date),[data.sellers,data.sales,data.recognitions,date])
- const allMonth=monthRows.reduce((n,r)=>n+r.revenue,0)
+ const rangeEnd=endDate>=date?endDate:date
+ const rows=useMemo(()=>rankRows(data.sellers,data.sales,period,date,rangeEnd),[data.sellers,data.sales,period,date,rangeEnd])
+ const monthRevenue=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).reduce((n,r)=>n+r.revenue,0),[data.sellers,data.sales,date])
  const periodRevenue=rows.reduce((n,r)=>n+r.revenue,0),periodCount=rows.reduce((n,r)=>n+r.count,0)
  const periodTicket=periodCount?rows.reduce((n,r)=>n+r.ticket*r.count,0)/periodCount:0
- const periodLabel=period==='day'?'no dia':period==='week'?'na semana':period==='range'?'no período selecionado':'no mês'
+ const periodLabel=period==='day'?'no dia':period==='week'?'na semana':period==='range'?'no período':'no mês'
  const goal=data.goals.find(g=>g.month===monthKey(date))||defaultGoal
- const progress=goal.monthly_target?Math.max(0,Math.min(100,allMonth/Number(goal.monthly_target)*100)):0
+ const target=Number(goal.monthly_target)
+ const progress=target?Math.max(0,Math.min(100,monthRevenue/target*100)):0
  // O ranking de boas ações é histórico e independente dos filtros de vendas.
- // Alterar Diário/Semanal/Mensal/Período não modifica sua pontuação nem seu histórico.
- const actionRanking=data.sellers.filter(s=>s.active).map(s=>{
+ const actionRanking=useMemo(()=>data.sellers.filter(s=>s.active).map(s=>{
   const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0)
   return {seller:s,stars:entries.reduce((n,r)=>n+Number(r.stars||0),0),actions:entries.length}
- }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
- const [actionStep,setActionStep]=useState(0)
- const actionPageSize=8
- const actionMaxStart=Math.max(0,actionRanking.length-actionPageSize)
- const safeActionStep=Math.min(actionStep,2*actionMaxStart)
- const actionStart=safeActionStep<=actionMaxStart?safeActionStep:2*actionMaxStart-safeActionStep
- useEffect(()=>{setActionStep(0)},[actionRanking.length])
- useEffect(()=>{if(!full||actionMaxStart===0)return;const timer=window.setInterval(()=>setActionStep(v=>v>=2*actionMaxStart?0:v+1),3000);return()=>clearInterval(timer)},[full,actionMaxStart])
- const visibleActionRows=full?actionRanking.slice(actionStart,actionStart+actionPageSize):actionRanking
- const recentRecognitions=data.recognitions
-  .filter(r=>r.stars>0)
-  .sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at))
-  .slice(0,3)
- const sellerById=new Map(data.sellers.map(s=>[s.id,s]))
- const [rankingStep,setRankingStep]=useState(0)
- const rankingPageSize=6
- const rankingMaxStart=Math.max(0,rows.length-rankingPageSize)
- const safeRankingStep=Math.min(rankingStep,2*rankingMaxStart)
- const rankingStart=safeRankingStep<=rankingMaxStart?safeRankingStep:2*rankingMaxStart-safeRankingStep
- useEffect(()=>{setRankingStep(0)},[rows.length,period,date,endDate])
- useEffect(()=>{
-  if(!full||rankingMaxStart===0)return
-  const timer=window.setInterval(()=>setRankingStep(current=>current>=2*rankingMaxStart?0:current+1),2600)
-  return()=>window.clearInterval(timer)
- },[full,rankingMaxStart])
- const visibleRankingRows=full?rows.slice(rankingStart,rankingStart+rankingPageSize):rows
- return <div className={full?'dashboard full-dashboard':'dashboard'}>
-  {!full&&<Header/>}<DemoNotice/>{data.error&&<div className="error-box" role="alert">Falha ao carregar os dados: {data.error}</div>}
-  <main className="dash-main">
-   <section className="welcome-line"><div><span className="eyebrow">NOSSO DESEMPENHO · {periodText(period)}</span><h1>O resultado é de <em>todos nós.</em></h1><p>Transparência para evoluir. Reconhecimento para inspirar.</p></div><div className="date-chip"><CalendarDays size={16}/>{period==='range'?new Date(date+'T12:00:00').toLocaleDateString('pt-BR')+' até '+new Date(endDate+'T12:00:00').toLocaleDateString('pt-BR'):new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}<span>{now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></section>
-   <section className="period-row"><div className="period-tabs">{(['day','week','month','range'] as Period[]).map(p=><button onClick={()=>setPeriod(p)} className={period===p?'active':''} key={p}>{p==='day'?'Diário':p==='week'?'Semanal':p==='month'?'Mensal':'Período'}</button>)}</div>{period==='range'?<div className="date-range-fields"><label>De<input aria-label="Data inicial do período" type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input aria-label="Data final do período" type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>:<input aria-label="Data de referência" type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/>}</section>
-   <section className="overview-layout">
-    <div className="overview-metrics">
-     <section className="goal-progress"><div className="goal-progress-head"><div><span className="eyebrow">ACOMPANHAMENTO DA META MENSAL</span><strong>{progress.toFixed(1)}% <small>alcançados</small></strong></div><span>{money(allMonth)} <small>de</small> {money(Number(goal.monthly_target))}</span></div><div className="progress-track"><div style={{width:progress+'%'}}/></div><div className="progress-footer"><span>Vamos juntos até o próximo marco.</span><strong>Faltam {money(Math.max(0,Number(goal.monthly_target)-allMonth))}</strong></div></section>
-     <section className="metrics-grid">
-      <Metric icon={<Target/>} label="META MENSAL" value={money(Number(goal.monthly_target))} detail={monthLabel(date)} tone="gold"/>
-      <Metric icon={<TrendingUp/>} label="FATURAMENTO DO PERÍODO" value={money(periodRevenue)} detail={'Resultado '+periodLabel} tone="green"/>
-      <Metric icon={<ShoppingBag/>} label="TICKET MÉDIO DO PERÍODO" value={exactMoney(periodTicket)} detail={periodCount+' vendas '+periodLabel} tone="blue"/>
-      <Metric icon={<CalendarDays/>} label="QUANTIDADE DE VENDAS" value={String(periodCount)} detail={'Vendas registradas '+periodLabel} tone="purple"/>
-     </section>
+ }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')),[data.sellers,data.recognitions])
+ const recentRecognitions=useMemo(()=>[...data.recognitions].filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at)).slice(0,3),[data.recognitions])
+ const sellerById=useMemo(()=>new Map(data.sellers.map(s=>[s.id,s])),[data.sellers])
+ const ranking=useSlidingWindow(rows.length,8,4000,period+date+endDate)
+ const actions=useSlidingWindow(actionRanking.length,4,4000,'actions')
+ const visibleRows=rows.slice(ranking.start,ranking.start+8)
+ const visibleActions=actionRanking.slice(actions.start,actions.start+4)
+ const [first,second,third]=rows
+ const loading=data.busy&&!data.updatedAt
+ return <div className="tv">
+  <header className="tv-header">
+   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>O resultado é de todos nós.</h1></div>
+   <div className="tv-header-tools">
+    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div>
+    {period==='range'
+     ?<div className="tv-dates"><label>De<input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
+     :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
+    <span className="tv-clock">{period==='range'?shortDate(date)+' a '+shortDate(rangeEnd):longDate(date)}, <strong>{clock(now)}</strong></span>
+    {data.error
+     ?<span className="tv-status is-offline" role="status">Sem atualização {data.updatedAt?'desde '+clock(data.updatedAt):'dos dados'}</span>
+     :<span className="tv-status" role="status">{data.updatedAt?'Atualizado às '+clock(data.updatedAt):'Carregando dados'}</span>}
+   </div>
+  </header>
+
+  <section className="tv-kpis" aria-label="Meta mensal e indicadores do período">
+   <div className="tv-goal">
+    <div className="tv-goal-row"><span className="tv-goal-title">Meta de {monthLabel(date)}</span><span><strong>{money(monthRevenue)}</strong> de <strong>{money(target)}</strong></span></div>
+    <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{money(Math.max(0,target-monthRevenue))}</strong></span></div>
+    <div className="tv-goal-track" role="progressbar" aria-label="Progresso da meta mensal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
+   </div>
+   <div className="tv-metrics">
+    <div className="tv-metric"><span>Faturamento do período</span><strong>{money(periodRevenue)}</strong><small>Resultado {periodLabel}</small></div>
+    <div className="tv-metric"><span>Ticket médio do período</span><strong>{exactMoney(periodTicket)}</strong><small>{periodCount} {periodCount===1?'venda':'vendas'} {periodLabel}</small></div>
+    <div className="tv-metric"><span>Quantidade de vendas</span><strong>{periodCount}</strong><small>Vendas registradas {periodLabel}</small></div>
+   </div>
+  </section>
+
+  <section className="tv-body">
+   <div className="tv-panel tv-podium">
+    <div className="tv-panel-head"><h2>Pódio</h2><span>{periodTag(period)}</span></div>
+    {first?<div className="tv-podium-body">
+     <div className="tv-podium-first">
+      <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
+      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{money(first.revenue)}</span><small>{first.count} {first.count===1?'venda':'vendas'}</small>
+     </div>
+     <div className="tv-podium-rest">
+      {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
+       <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
+       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{money(r.revenue)}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
+      </div>:null)}
+     </div>
+    </div>:<p className="tv-empty">{loading?'Carregando dados…':'Nenhuma venda registrada neste período.'}</p>}
+   </div>
+
+   <div className="tv-panel tv-ranking">
+    <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{rows.length} {rows.length===1?'colaboradora':'colaboradoras'}</span></div>
+    <table>
+     <thead><tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Valor vendido</th><th scope="col">Vendas</th><th scope="col">Ticket médio</th></tr></thead>
+     <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;return <tr key={r.seller.id}>
+      <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
+      <td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&<span className="tv-leader">Líder</span>}</span></td>
+      <td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td>
+     </tr>})}</tbody>
+    </table>
+    {rows.length===0&&<p className="tv-empty">{loading?'Carregando dados…':'Nenhuma venda registrada neste período.'}</p>}
+   </div>
+
+   <div className="tv-panel tv-culture">
+    <div>
+     <div className="tv-panel-head"><h2>Ranking de boas ações</h2><span>Desde o início</span></div>
+     <ol className="tv-actions" key={actions.key}>{visibleActions.map((r,v)=>{const pos=actions.start+v;return <li key={r.seller.id}>
+      <span className="tv-actions-pos">{String(pos+1).padStart(2,'0')}</span><span className="tv-actions-name">{r.seller.full_name}</span>
+      <span className="tv-muted">{r.actions} {r.actions===1?'ação':'ações'}</span>
+      <span className="tv-stars" aria-label={r.stars+(r.stars===1?' estrela':' estrelas')}><TvStar/>{r.stars}</span>
+     </li>})}</ol>
+     {actionRanking.length===0&&<p className="tv-empty tv-empty-card">Ainda não há boas ações reconhecidas.</p>}
     </div>
-    <section className="ranking-section"><div className="section-head"><div><span className="eyebrow">DESTAQUES DA EQUIPE</span><h2>Nosso pódio <span>de resultados</span></h2></div><span className="period-tag">{periodText(period)}</span></div><Podium rows={rows.slice(0,3)}/></section>
-   </section>
-   <section className="rankings-layout">
-    <section className="table-section"><div className="section-head"><div><span className="eyebrow">TODO MUNDO FAZ A DIFERENÇA</span><h2>Ranking <span>de vendas</span></h2></div><span className="subtle-count">{rows.length} colaboradoras</span></div><div className="table-wrap"><table><thead><tr><th>POSIÇÃO</th><th>VENDEDORA</th><th>VALOR VENDIDO</th><th>VENDAS</th><th>TICKET MÉDIO</th></tr></thead><tbody key={full?safeRankingStep:'all'} className={full?'ranking-animated-body':''}>{visibleRankingRows.map((r,visibleIndex)=>{const i=full?rankingStart+visibleIndex:visibleIndex;return <tr className={full?'ranking-animated-row':''} key={r.seller.id}><td><span className={'rank-number '+(i<3?'top-rank':'')}>{String(i+1).padStart(2,'0')}</span></td><td><div className="seller-cell"><Avatar seller={r.seller} size="sm" index={i}/><strong>{r.seller.full_name}</strong>{i===0&&<span className="leader-chip">LÍDER</span>}</div></td><td className="money-cell">{exactMoney(r.revenue)}</td><td>{r.count}</td><td>{exactMoney(r.ticket)}</td></tr>})}</tbody></table>{rows.length===0&&<div className="empty-state">Nenhum resultado para este período.</div>}</div></section>
-    <section className="actions-ranking-section"><div className="section-head"><div><span className="eyebrow">CULTURA QUE FAZ A DIFERENÇA</span><h2>Ranking <span>de boas ações</span></h2></div><span className="subtle-count">{actionRanking.length} colaboradoras</span></div><div className="actions-ranking-list">{visibleActionRows.map((r,index)=>{const position=actionStart+index;return <div className="action-ranking-row" key={r.seller.id}><span className={'rank-number '+(position<3?'top-rank':'')}>{String(position+1).padStart(2,'0')}</span><Avatar seller={r.seller} size="sm" index={position}/><strong>{r.seller.full_name}</strong><span className="action-stars">{Array.from({length:Math.min(5,r.stars)},(_,i)=><Star key={i} size={13} fill="currentColor"/>)}<b>{r.stars}</b></span><small>{r.actions} {r.actions===1?'ação reconhecida':'ações reconhecidas'}</small></div>})}{actionRanking.length===0&&<div className="empty-state">Nenhuma boa ação reconhecida neste período.</div>}</div><div className="recognition-highlights"><div className="recognition-highlights-title">RECONHECIMENTOS RECENTES</div>{recentRecognitions.map(rec=>{const seller=sellerById.get(rec.seller_id);return <article className="recognition-highlight" key={rec.id}><div className="recognition-highlight-main"><strong>{seller?.full_name||'Colaboradora'}</strong><span>{rec.title}</span></div><div className="recognition-highlight-stars"><Star size={12} fill="currentColor"/>{rec.stars}</div><p>{rec.description}</p></article>})}{recentRecognitions.length===0&&<p className="recognition-none">Os reconhecimentos deste período aparecerão aqui com o nome, motivo e estrelas concedidas.</p>}</div></section>
-   </section>
-  </main>
+    <div className="tv-recents">
+     <h2>Reconhecimentos recentes</h2>
+     {recentRecognitions.map(rec=><article key={rec.id}>
+      <div className="tv-recent-head"><strong>{sellerById.get(rec.seller_id)?.full_name||'Colaboradora'}</strong><span className="tv-recent-title">{rec.title}</span><span className="tv-stars" aria-label={rec.stars+(rec.stars===1?' estrela':' estrelas')}><TvStar/>{rec.stars}</span></div>
+      <p>{rec.description}</p>
+     </article>)}
+     {recentRecognitions.length===0&&<p className="tv-empty tv-empty-card">Os reconhecimentos aparecerão aqui com o nome, o motivo e as estrelas.</p>}
+    </div>
+   </div>
+  </section>
  </div>
 }
 function Metric({icon,label,value,detail,tone}:{icon:ReactNode;label:string;value:string;detail:string;tone:string}){
@@ -375,7 +430,7 @@ export default function App(){
   <Route path="/admin/login" element={<Login role="admin"/>}/>
   <Route path="/viewer/login" element={<Login role="viewer"/>}/>
   <Route path="/viewer" element={<ViewerGate/>}/>
-  <Route path="/viewer/board" element={<Guard role="viewer"><Dashboard data={data} full/></Guard>}/>
+  <Route path="/viewer/board" element={<Guard role="viewer"><Dashboard data={data}/></Guard>}/>
   <Route path="/admin" element={<Guard role="admin"><Admin/></Guard>}/>
   <Route path="*" element={<Navigate to="/" replace/>}/>
  </Routes>

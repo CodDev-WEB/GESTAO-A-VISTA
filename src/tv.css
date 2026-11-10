@@ -1,0 +1,178 @@
+/*
+  Painel TV (/viewer/board)
+  Escala: 1em = 10px numa tela 1920×1080. O painel inteiro escala com a tela
+  e cabe numa única tela, sem rolagem, em qualquer proporção próxima de 16:9.
+  Cores: branco é a base; turquesa marca meta e vendas; amarelo marca conquistas
+  (pódio, líder, estrelas); navy é usado só no texto.
+*/
+.tv{
+  --tv-navy:#172538;
+  --tv-muted:#586675;
+  --tv-turquoise:#49C3D0;
+  --tv-turquoise-ink:#1D4650;
+  --tv-turquoise-text:#1D7480;
+  --tv-turquoise-soft:#EAF8FA;
+  --tv-yellow:#FFDE50;
+  --tv-yellow-soft:#FFF8D6;
+  --tv-white:#FFFFFF;
+  --tv-danger:#B3362E;
+  --tv-danger-soft:#FBE9E7;
+  --tv-danger-ink:#8E2A23;
+  font-size:min(.5208vw,.9259vh);
+  width:100%;
+  height:100dvh;
+  box-sizing:border-box;
+  padding:4em 5.6em 4.8em;
+  display:flex;
+  flex-direction:column;
+  gap:2.4em;
+  overflow:hidden;
+  background:var(--tv-white);
+  color:var(--tv-navy);
+  font-family:'DM Sans',sans-serif;
+}
+.tv *,.tv *::before,.tv *::after{box-sizing:border-box}
+.tv h1,.tv h2,.tv p{margin:0}
+.tv strong{font-weight:700}
+.tv-muted{color:var(--tv-muted)}
+.tv-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tv :focus-visible{outline:.3em solid var(--tv-turquoise-text);outline-offset:.2em}
+
+/* Cabeçalho */
+.tv-header{flex:none;height:6em;display:flex;align-items:center;justify-content:space-between;gap:2.4em}
+.tv-brand{display:flex;align-items:center;gap:1.6em;min-width:0}
+.tv-brand-mark{flex:none;width:4.8em;height:4.8em;border-radius:1.3em;background:var(--tv-yellow);color:var(--tv-navy);display:grid;place-items:center}
+.tv-brand-mark svg{width:2.4em;height:2.4em}
+.tv-brand h1{font:800 3.4em Manrope,sans-serif;letter-spacing:-.024em;white-space:nowrap}
+.tv-header-tools{display:flex;align-items:center;gap:2em;min-width:0}
+.tv-periods{display:flex;gap:.2em;padding:.4em;background:var(--tv-turquoise-soft);border-radius:1.2em}
+.tv-periods button{border:0;background:transparent;color:var(--tv-turquoise-ink);font:inherit;font-size:2.1em;padding:.38em .86em;border-radius:.43em;cursor:pointer}
+.tv-periods button[aria-pressed="true"]{background:var(--tv-turquoise);color:var(--tv-navy);font-weight:700}
+.tv-dates{display:flex;align-items:center;gap:1em;font-size:1.8em;color:var(--tv-muted)}
+.tv-dates label{display:flex;align-items:center;gap:.5em}
+.tv-dates input{font:inherit;color:var(--tv-navy);border:1px solid #CDEBEF;border-radius:.5em;padding:.3em .5em;background:var(--tv-white)}
+.tv-clock{font-size:2.1em;color:var(--tv-muted);white-space:nowrap}
+.tv-clock strong{color:var(--tv-navy)}
+.tv-status{display:flex;align-items:center;gap:.5em;font-size:2.1em;color:var(--tv-muted);white-space:nowrap}
+.tv-status::before{content:'';width:.52em;height:.52em;border-radius:50%;background:var(--tv-turquoise);box-shadow:0 0 0 .19em var(--tv-turquoise-soft)}
+.tv-status.is-offline{background:var(--tv-danger-soft);color:var(--tv-danger-ink);padding:.38em .67em;border-radius:.43em}
+.tv-status.is-offline::before{background:var(--tv-danger);box-shadow:none}
+
+/* Meta e indicadores */
+.tv-kpis{flex:none;height:18.8em;display:grid;grid-template-columns:1.8fr 3fr;gap:2.4em}
+.tv-goal{background:var(--tv-turquoise);border-radius:1.6em;padding:2.8em 3.6em;display:flex;flex-direction:column;justify-content:space-between}
+.tv-goal-row{display:flex;justify-content:space-between;align-items:baseline;gap:1.6em;font-size:2.1em;color:var(--tv-turquoise-ink)}
+.tv-goal-row strong{color:var(--tv-navy)}
+.tv-goal-title{font-weight:700;color:var(--tv-navy)}
+.tv-goal-value{font:800 2.857em/1 Manrope,sans-serif;letter-spacing:-.025em;color:var(--tv-navy)}
+.tv-goal-value small{font:500 .367em 'DM Sans',sans-serif;letter-spacing:0;color:var(--tv-turquoise-ink)}
+.tv-goal-track{height:1.2em;background:var(--tv-turquoise-text);border-radius:1.2em;overflow:hidden}
+.tv-goal-track>div{height:100%;background:var(--tv-yellow);border-radius:1.2em;transition:width .6s ease}
+.tv-metrics{background:var(--tv-white);border:.2em solid var(--tv-turquoise-soft);border-radius:1.6em;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.tv-metric{padding:2.8em 3.2em;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.tv-metric+.tv-metric{border-left:.2em solid var(--tv-turquoise-soft)}
+.tv-metric span{font-size:2.1em;color:var(--tv-muted)}
+.tv-metric strong{font:800 5em/1 Manrope,sans-serif;letter-spacing:-.024em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-metric small{font-size:2em;color:var(--tv-muted)}
+
+/* Corpo: três colunas */
+.tv-body{flex:1;min-height:0;display:grid;grid-template-columns:.9fr 1.3fr 1fr;gap:2.4em}
+.tv-panel{min-height:0;min-width:0;border-radius:1.6em;padding:2.8em 3.2em;display:flex;flex-direction:column;overflow:hidden}
+.tv-panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:1em;margin-bottom:1.6em}
+.tv-panel-head h2,.tv-recents h2{font:800 2.8em Manrope,sans-serif;letter-spacing:-.01em}
+.tv-panel-head span{font-size:2em;color:var(--tv-muted);white-space:nowrap}
+.tv-empty{font-size:2.1em;color:var(--tv-muted);padding:1em 0}
+.tv-empty-card{background:var(--tv-white);border-radius:.57em;padding:.8em .76em}
+
+.tv-avatar{flex:none;border-radius:50%;display:grid;place-items:center;overflow:hidden;color:var(--tv-white);font-family:Manrope,sans-serif;font-weight:800}
+.tv-avatar img{width:100%;height:100%;object-fit:cover}
+.tv-avatar.sm{width:2.71em;height:2.71em}
+.tv-avatar.lg{font-size:2.2em;width:3.09em;height:3.09em}
+.tv-avatar.xl{font-size:4.2em;width:3.05em;height:3.05em}
+
+/* Pódio (amarelo = conquista) */
+.tv-podium{background:var(--tv-yellow-soft)}
+.tv-podium-body{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:2.4em}
+.tv-podium-first{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.6em}
+.tv-podium-avatar{position:relative;display:inline-flex}
+.tv-podium-first .tv-avatar{box-shadow:0 0 0 .119em var(--tv-yellow-soft),0 0 0 .262em var(--tv-yellow)}
+.tv-podium-avatar b{position:absolute;right:-.4em;bottom:-.2em;width:2.3em;height:2.3em;border-radius:50%;border:.2em solid var(--tv-yellow-soft);background:var(--tv-yellow);color:var(--tv-navy);display:grid;place-items:center;font:800 2em Manrope,sans-serif}
+.tv-podium-first strong{margin-top:.46em;font-size:2.6em}
+.tv-podium-value{font:800 3.4em Manrope,sans-serif}
+.tv-podium-first small,.tv-podium-place small{font-size:2em;color:var(--tv-muted)}
+.tv-podium-rest{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.2em}
+.tv-podium-place{background:var(--tv-white);border-radius:1.2em;padding:1.6em;display:flex;align-items:center;gap:1.4em;min-width:0}
+.tv-podium-place>div{display:flex;flex-direction:column;gap:.2em;min-width:0}
+.tv-podium-place strong{font-size:2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-podium-place .tv-podium-value{font-size:2.4em}
+.tv-podium-place small{font-size:1.9em}
+.tv-podium-place .tv-podium-avatar b{font-size:1.5em;border-color:var(--tv-white);right:-.53em;bottom:-.27em}
+.tv-podium-place.place-2 .tv-avatar{box-shadow:0 0 0 .136em var(--tv-white),0 0 0 .318em var(--tv-turquoise)}
+.tv-podium-place.place-2 .tv-podium-avatar b{background:var(--tv-turquoise)}
+.tv-podium-place.place-3 .tv-avatar{box-shadow:0 0 0 .136em var(--tv-white),0 0 0 .318em #A6E0E6}
+.tv-podium-place.place-3 .tv-podium-avatar b{background:#A6E0E6}
+
+/* Ranking de vendas (turquesa = vendas) */
+.tv-ranking{background:var(--tv-white);border:.2em solid var(--tv-turquoise-soft)}
+.tv-ranking table{width:100%;border-collapse:collapse;table-layout:fixed}
+.tv-ranking th{font-size:1.9em;font-weight:700;letter-spacing:0;color:var(--tv-turquoise-ink);background:var(--tv-turquoise-soft);text-align:left;padding:.53em .63em;white-space:nowrap}
+.tv-ranking th:first-child{border-radius:.53em 0 0 .53em;width:3.8em}
+.tv-ranking th:nth-child(3){width:9.3em}
+.tv-ranking th:nth-child(4){width:5em}
+.tv-ranking th:nth-child(5){width:8.4em}
+.tv-ranking th:last-child{border-radius:0 .53em .53em 0}
+.tv-ranking th:nth-child(n+3){text-align:right}
+.tv-ranking td{font-size:2.2em;height:2.55em;padding:0 .55em;border-top:0;border-bottom:1px solid var(--tv-turquoise-soft);color:var(--tv-navy);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tv-num{text-align:right}
+.tv-ranking td.tv-muted{color:var(--tv-muted)}
+.tv-strong{font-weight:700}
+.tv-pos{display:inline-grid;place-items:center;width:1.9em;height:1.6em;font:800 .86em Manrope,sans-serif;color:var(--tv-muted)}
+.tv-pos.is-top{background:var(--tv-yellow);color:var(--tv-navy);border-radius:.38em}
+.tv-seller{display:flex;align-items:center;gap:.55em;min-width:0}
+.tv-seller .tv-avatar.sm{font-size:.64em}
+.tv-seller-name{font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.tv-leader{flex:none;font-size:.77em;font-weight:700;background:var(--tv-yellow-soft);border:1px solid var(--tv-yellow);border-radius:.35em;padding:.06em .59em}
+.tv-ranking-body{animation:tv-slide .5s ease}
+@keyframes tv-slide{from{opacity:.35;transform:translateY(.8em)}to{opacity:1;transform:none}}
+
+/* Boas ações e reconhecimentos */
+.tv-culture{background:var(--tv-turquoise-soft);gap:2.4em}
+.tv-culture .tv-panel-head{margin-bottom:1.2em}
+.tv-culture .tv-panel-head h2,.tv-recents h2{font-size:2.6em}
+.tv-actions{list-style:none;margin:0;background:var(--tv-white);border-radius:1.2em;padding:0 1.6em}
+.tv-actions li{display:flex;align-items:center;gap:1.2em;height:5.2em;font-size:1em}
+.tv-actions li+li{border-top:1px solid var(--tv-turquoise-soft)}
+.tv-actions-pos{width:1.7em;font:800 2em Manrope,sans-serif;color:var(--tv-turquoise-text)}
+.tv-actions-name{flex:1;min-width:0;font-size:2.1em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-actions .tv-muted{font-size:1.9em;white-space:nowrap}
+.tv-stars{display:inline-flex;align-items:center;gap:.29em;font:800 2.1em Manrope,sans-serif;white-space:nowrap}
+.tv-star{width:1.05em;height:1.05em;fill:var(--tv-yellow);stroke:var(--tv-navy);stroke-width:1.4;stroke-linejoin:round}
+.tv-recents{flex:1;min-height:0;display:flex;flex-direction:column;gap:1em;overflow:hidden}
+.tv-recents article{background:var(--tv-white);border-radius:1.2em;padding:1.2em 1.6em;display:flex;flex-direction:column;gap:.4em}
+.tv-recent-head{display:flex;align-items:baseline;gap:1em;min-width:0}
+.tv-recent-head strong{font-size:2em;white-space:nowrap}
+.tv-recent-title{flex:1;min-width:0;font-size:1.9em;color:var(--tv-turquoise-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-recent-head .tv-stars{font-size:1.9em}
+.tv-recents p{font-size:1.9em;line-height:1.35;color:var(--tv-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+@media (prefers-reduced-motion:reduce){
+  .tv-ranking-body{animation:none}
+  .tv-goal-track>div{transition:none}
+}
+
+/* Telas estreitas ou em pé (celular, tablet): empilha e permite rolagem */
+@media (max-width:900px),(orientation:portrait){
+  .tv{font-size:6px;height:auto;min-height:100dvh;overflow:visible;padding:3em 2.4em}
+  .tv-header{height:auto;flex-direction:column;align-items:flex-start}
+  .tv-header-tools{flex-wrap:wrap}
+  .tv-brand h1{white-space:normal}
+  .tv-kpis{height:auto;grid-template-columns:1fr}
+  .tv-goal{gap:2em}
+  .tv-metrics{grid-template-columns:1fr}
+  .tv-metric{gap:1em}
+  .tv-metric+.tv-metric{border-left:0;border-top:.2em solid var(--tv-turquoise-soft)}
+  .tv-body{grid-template-columns:1fr}
+  .tv-panel{overflow:visible}
+  .tv-ranking{overflow-x:auto}
+  .tv-ranking table{min-width:72em}
+}
