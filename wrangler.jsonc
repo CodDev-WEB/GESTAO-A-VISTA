@@ -6,5 +6,8 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
-  }
+  },
+  // Necessário para o `npx wrangler preview` que o Cloudflare Workers Builds
+  // executa nos branches que não são de produção (prévias de PR).
+  "previews": {}
 }
