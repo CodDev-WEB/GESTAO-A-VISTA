@@ -316,6 +316,59 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
   </section>
  </div>
 }
+
+function PercentageDashboard({data,admin=false}:{data:ReturnType<typeof useData>;admin?:boolean}){
+ const [date,setDate]=useState(today())
+ const month=monthKey(date)
+ const goal=data.goals.find(g=>g.month===month)
+ const target=Number(goal?.monthly_target||500000)
+ const rows=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).map(r=>({...r,contribution:target>0?r.revenue/target*100:0})),[data.sellers,data.sales,date,target])
+ const total=rows.reduce((sum,r)=>sum+r.revenue,0)
+ const progress=target>0?Math.max(0,total/target*100):0
+ const actionRanking=useMemo(()=>data.sellers.filter(s=>s.active).map(s=>{
+  const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0)
+  return {seller:s,stars:entries.reduce((n,r)=>n+Number(r.stars||0),0),actions:entries.length}
+ }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')),[data.sellers,data.recognitions])
+ const top=rows.slice(0,3)
+ const pct=(n:number)=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'
+ const [first,second,third]=top
+ return <div className="tv tv-percent">
+  <header className="tv-header">
+   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><div><h1>Contribuição para a meta</h1><small>DESEMPENHO EM PORCENTAGEM</small></div></div>
+   <div className="tv-header-tools">
+    <label className="tv-dates"><span>Mês de referência</span><input type="month" value={date.slice(0,7)} onChange={e=>e.target.value&&setDate(e.target.value+'-01')}/></label>
+    <Link className="tv-percent-back" to={admin?'/admin':'/viewer/board'}>{admin?'Voltar ao admin':'Tela de valores'}</Link>
+   </div>
+  </header>
+  <section className="tv-percent-goal">
+   <div className="tv-percent-goal-head"><div><span className="tv-percent-eyebrow">META MENSAL · {monthLabel(date)}</span><strong>{pct(progress)}</strong><small>da meta alcançada</small></div><div className="tv-percent-goal-side"><span>Meta total</span><strong>100%</strong><small>{data.goals.some(g=>g.month===month)?'Meta cadastrada no sistema':'Referência padrão: R$ 500.000'}</small></div></div>
+   <div className="tv-percent-track" role="progressbar" aria-label="Percentual da meta mensal alcançado" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100,Math.max(0,progress))}><div style={{width:Math.min(100,Math.max(0,progress))+'%'}}/></div>
+   <div className="tv-percent-foot"><span>Contribuição acumulada da equipe</span><strong>{pct(progress)} de 100%</strong></div>
+  </section>
+  <section className="tv-percent-body">
+   <div className="tv-panel tv-podium">
+    <div className="tv-panel-head"><h2>Pódio de contribuição</h2><span>Top 3</span></div>
+    {first?<div className="tv-percent-podium-list">{[first,second,third].filter(Boolean).map((r,i)=><div className={'tv-percent-podium-item place-'+(i+1)} key={r.seller.id}>
+      <span className="tv-percent-place">{i+1}º</span><TvAvatar seller={r.seller} className={i===0?'xl':'lg'}/>
+      <strong>{r.seller.full_name}</strong><b>{pct(r.contribution)}</b>
+     </div>)}</div>:<p className="tv-empty">Nenhuma contribuição registrada neste mês.</p>}
+   </div>
+   <div className="tv-panel tv-ranking tv-percent-ranking">
+    <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{rows.length} vendedores</span></div>
+    <div className="tv-percent-table-wrap"><table><thead><tr><th>Pos.</th><th>Vendedor</th><th>Contribuição da meta</th></tr></thead><tbody>
+     {rows.map((r,i)=><tr key={r.seller.id}><td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td><td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span></span></td><td><div className="tv-percent-cell"><strong>{pct(r.contribution)}</strong><span className="tv-percent-mini-track"><i style={{width:Math.min(100,Math.max(0,r.contribution))+'%'}}/></span></div></td></tr>)}
+    </tbody></table>{rows.length===0&&<p className="tv-empty">Nenhuma venda registrada neste mês.</p>}</div>
+   </div>
+   <div className="tv-panel tv-culture tv-percent-actions">
+    <div className="tv-panel-head"><h2>Ranking de boas ações</h2><span>Histórico fixo</span></div>
+    <ol className="tv-actions">{actionRanking.map((r,i)=><li key={r.seller.id}><span className="tv-actions-pos">{String(i+1).padStart(2,'0')}</span><span className="tv-actions-name">{r.seller.full_name}</span><span className="tv-muted">{r.actions} {r.actions===1?'ação':'ações'}</span><span className="tv-stars"><TvStar/>{r.stars}</span></li>)}</ol>
+    {actionRanking.length===0&&<p className="tv-empty tv-empty-card">Ainda não há boas ações reconhecidas.</p>}
+   </div>
+  </section>
+  <footer className="tv-percent-footer">Cada percentual representa a participação individual na meta mensal coletiva.</footer>
+ </div>
+}
+
 function Metric({icon,label,value,detail,tone}:{icon:ReactNode;label:string;value:string;detail:string;tone:string}){
  return <div className="metric-card"><div className={'metric-icon '+tone}>{icon}</div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>
 }
@@ -412,7 +465,7 @@ function Admin(){
  async function saveGoal(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('goals').upsert(goal,{onConflict:'month'});setMessage(error?.message||'Meta salva.');await data.load()}
  async function addRecognition(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('recognitions').insert({seller_id:recSeller,stars:recStars,kind:recKind,title:recTitle,description:recDescription,recognized_at:today()});setMessage(error?.message||'Reconhecimento publicado no painel.');if(!error){setRecTitle('');setRecDescription('');setRecStars(1);await data.load()}}
  async function uploadPhoto(e:FormEvent){e.preventDefault();const el=document.getElementById('seller-photo') as HTMLInputElement;const f=el.files?.[0];if(!f||!supabase||!photoSeller)return;const path=photoSeller+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9.-]/g,'_');const {error}=await supabase.storage.from('seller-photos').upload(path,f,{upsert:true});if(error){setMessage(error.message);return}const {data:pub}=supabase.storage.from('seller-photos').getPublicUrl(path);const {error:e2}=await supabase.from('sellers').update({photo_url:pub.publicUrl}).eq('id',photoSeller);setMessage(e2?.message||'Foto atualizada.');await data.load()}
- return <div className="admin-shell"><aside className="admin-sidebar"><Brand/><div className="sidebar-label">GESTÃO COMERCIAL</div><nav>{[['overview','Visão geral',LayoutDashboard],['import','Importar vendas',Upload],['sellers','Colaboradoras',Users],['goals','Metas',Target],['recognitions','Reconhecimentos',Star]] .map(([id,label,Icon])=><button key={String(id)} className={tab===id?'selected':''} onClick={()=>setTab(String(id))}>{<Icon size={18}/>} {String(label)}<ChevronRight size={14}/></button>)}</nav><div className="sidebar-bottom"><button onClick={()=>nav('/')}><Monitor size={17}/> Abrir painel TV</button><button onClick={logout}><LogOut size={17}/> Sair</button></div></aside><main className="admin-content"><header className="admin-top"><div><span className="eyebrow">GESTÃO À VISTA / ADMINISTRAÇÃO</span><h1>{({overview:'Visão geral',import:'Importar vendas',sellers:'Colaboradoras',goals:'Metas comerciais',recognitions:'Reconhecimentos'} as Record<string,string>)[tab]}</h1></div><div className="admin-user"><span className="admin-online"/> ADMINISTRAÇÃO</div></header><DemoNotice/>{message&&<div className="success-message"><CheckCircle2 size={16}/>{message}<button onClick={()=>setMessage('')}><X size={15}/></button></div>}{parseError&&<div className="error-box">{parseError}</div>}
+ return <div className="admin-shell"><aside className="admin-sidebar"><Brand/><div className="sidebar-label">GESTÃO COMERCIAL</div><nav>{[['overview','Visão geral',LayoutDashboard],['import','Importar vendas',Upload],['sellers','Colaboradoras',Users],['goals','Metas',Target],['recognitions','Reconhecimentos',Star],['percentage','Tela de porcentagens',TrendingUp]] .map(([id,label,Icon])=><button key={String(id)} className={tab===id?'selected':''} onClick={()=>setTab(String(id))}>{<Icon size={18}/>} {String(label)}<ChevronRight size={14}/></button>)}</nav><div className="sidebar-bottom"><button onClick={()=>nav('/')}><Monitor size={17}/> Abrir painel TV</button><button onClick={()=>nav('/admin/percentage')}><TrendingUp size={17}/> Tela de porcentagens</button><button onClick={logout}><LogOut size={17}/> Sair</button></div></aside><main className="admin-content"><header className="admin-top"><div><span className="eyebrow">GESTÃO À VISTA / ADMINISTRAÇÃO</span><h1>{({overview:'Visão geral',import:'Importar vendas',sellers:'Colaboradoras',goals:'Metas comerciais',recognitions:'Reconhecimentos'} as Record<string,string>)[tab]}</h1></div><div className="admin-user"><span className="admin-online"/> ADMINISTRAÇÃO</div></header><DemoNotice/>{message&&<div className="success-message"><CheckCircle2 size={16}/>{message}<button onClick={()=>setMessage('')}><X size={15}/></button></div>}{parseError&&<div className="error-box">{parseError}</div>}
  {data.error&&<div className="error-box">{data.error}</div>}
  {tab==='overview'&&<><div className="admin-cards"><Metric icon={<Users/>} label="COLABORADORAS ATIVAS" value={String(data.sellers.filter(s=>s.active).length)} detail="Equipe cadastrada" tone="blue"/><Metric icon={<TrendingUp/>} label="FATURAMENTO DO MÊS" value={money(data.sales.filter(s=>s.sale_date.startsWith(today().slice(0,7))).reduce((n,s)=>n+Number(s.revenue),0))} detail="Vendas registradas" tone="green"/><Metric icon={<ShoppingBag/>} label="VENDAS NO MÊS" value={String(data.sales.filter(s=>s.sale_date.startsWith(today().slice(0,7))).reduce((n,s)=>n+Number(s.sales_count),0))} detail="Atendimentos convertidos" tone="gold"/><Metric icon={<Star/>} label="ESTRELAS CONCEDIDAS" value={String(data.recognitions.reduce((n,r)=>n+r.stars,0))} detail="Reconhecimentos acumulados" tone="purple"/></div><div className="admin-panel"><div className="panel-head"><div><h2>Desempenho do mês</h2><p>Ranking atualizado com os registros importados.</p></div><button className="btn secondary" onClick={()=>data.load()}><RefreshCw size={15}/> Atualizar dados</button></div><div className="table-wrap"><table><thead><tr><th>POSIÇÃO</th><th>VENDEDORA</th><th>FATURAMENTO</th><th>VENDAS</th><th>TICKET MÉDIO</th></tr></thead><tbody>{rankRows(data.sellers,data.sales,'month',today()).map((r,i)=><tr key={r.seller.id}><td><b className="rank-number">{i+1}</b></td><td>{r.seller.full_name}</td><td className="money-cell">{exactMoney(r.revenue)}</td><td>{r.count}</td><td>{exactMoney(r.ticket)}</td></tr>)}</tbody></table></div></div><div className="admin-shortcuts"><button onClick={()=>setTab('import')}><Upload/><strong>Importar vendas</strong><span>Atualize os dados diários</span><ArrowUpRight/></button><button onClick={()=>setTab('recognitions')}><Star/><strong>Reconhecer equipe</strong><span>Valorize boas práticas</span><ArrowUpRight/></button><button onClick={()=>setTab('goals')}><Target/><strong>Definir metas</strong><span>Configure o objetivo do mês</span><ArrowUpRight/></button></div></>}
  {tab==='import'&&<div className="admin-panel"><h2>Importação diária de vendas</h2><p>Envie uma planilha Excel no modelo Diária Yup ou um arquivo CSV. Os dados serão conferidos antes de gravar.</p><label className="upload-zone"><input type="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/><Upload size={26}/><strong>{file?file.name:'Selecionar arquivo Excel ou CSV'}</strong><span>Excel (.xlsx/.xls) ou CSV · Prévia antes da confirmação</span></label><div className="format-hint"><strong>Formatos aceitos:</strong><br/>Excel: aba BASE VENDAS com Data, Vendedora, Faturamento líquido (R$) e Nº de vendas.<br/>CSV: data,vendedora,valor,vendas (e-mail opcional).<br/>Datas aceitas: AAAA-MM-DD ou DD/MM/AAAA. Valores em reais, inclusive negativos para registrar estornos. Estornos não aumentam a quantidade de vendas.</div>{preview.length>0&&<><div className="preview-head"><strong>Prévia de importação</strong><span>{preview.length} registros encontrados</span></div><div className="table-wrap"><table><thead><tr><th>DATA</th><th>VENDEDORA</th><th>FATURAMENTO</th><th>VENDAS</th></tr></thead><tbody>{preview.slice(0,10).map((r,i)=><tr key={i}><td>{r.data}</td><td>{r.vendedora}</td><td>{exactMoney(Number(r.valor))}</td><td>{r.vendas}</td></tr>)}</tbody></table></div><button className="btn primary" disabled={saving} onClick={importCsv}>{saving?'Importando...':'Confirmar importação'}<ChevronRight size={16}/></button></>}</div>}
@@ -431,6 +484,8 @@ export default function App(){
   <Route path="/viewer/login" element={<Login role="viewer"/>}/>
   <Route path="/viewer" element={<ViewerGate/>}/>
   <Route path="/viewer/board" element={<Guard role="viewer"><Dashboard data={data}/></Guard>}/>
+   <Route path="/viewer/percentage" element={<Guard role="viewer"><PercentageDashboard data={data}/></Guard>}/>
+   <Route path="/admin/percentage" element={<Guard role="admin"><PercentageDashboard data={data} admin/></Guard>}/>
   <Route path="/admin" element={<Guard role="admin"><Admin/></Guard>}/>
   <Route path="*" element={<Navigate to="/" replace/>}/>
  </Routes>
