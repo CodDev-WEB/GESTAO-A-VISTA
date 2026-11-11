@@ -191,7 +191,7 @@ const periodTag=(p:Period)=>p==='day'?'Hoje':p==='week'?'Esta semana':p==='range
 const periodTabs:[Period,string][]=[['day','Diário'],['week','Semanal'],['month','Mensal'],['range','Período']]
 const sellerColor=(id:string)=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return ['#B07A5A','#6E8CA6','#7E9A86','#8A7FB0','#5E8F9E','#A0708A','#7A8F5E','#9A7A50'][h%8]}
 const clock=(d:Date)=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
-const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})
+const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','')
 const prefersReducedMotion=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 function TvAvatar({seller,className}:{seller:Seller;className:string}){
  return <span className={'tv-avatar '+className} style={{background:sellerColor(seller.id)}}>{seller.photo_url?<img src={seller.photo_url} alt=""/>:initial(seller.full_name)}</span>
@@ -240,7 +240,7 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
   <header className="tv-header">
    <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>O resultado é de todos nós.</h1></div>
    <div className="tv-header-tools">
-    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div><Link className="tv-percent-back" to="/viewer/percentage">Ver em porcentagem</Link>
+    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div><Link className="tv-switch" to="/viewer/percentage">Ver em %</Link>
     {period==='range'
      ?<div className="tv-dates"><label>De<input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
      :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
@@ -318,54 +318,97 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
 }
 
 function PercentageDashboard({data,admin=false}:{data:ReturnType<typeof useData>;admin?:boolean}){
- const [date,setDate]=useState(today())
+ const [date,setDate]=useState(today()),[now,setNow]=useState(new Date())
+ useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
  const month=monthKey(date)
  const goal=data.goals.find(g=>g.month===month)
  const target=Number(goal?.monthly_target||500000)
  const rows=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).map(r=>({...r,contribution:target>0?r.revenue/target*100:0})),[data.sellers,data.sales,date,target])
  const total=rows.reduce((sum,r)=>sum+r.revenue,0)
  const progress=target>0?Math.max(0,total/target*100):0
+ const remaining=Math.max(0,100-progress)
+ const contributing=rows.filter(r=>r.revenue>0).length
+ const activeSellers=data.sellers.filter(s=>s.active).length
  const actionRanking=useMemo(()=>data.sellers.filter(s=>s.active).map(s=>{
   const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0)
   return {seller:s,stars:entries.reduce((n,r)=>n+Number(r.stars||0),0),actions:entries.length}
  }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')),[data.sellers,data.recognitions])
- const top=rows.slice(0,3)
- const pct=(n:number)=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'
- const [first,second,third]=top
+ const pct=(n:number,digits=2)=>n.toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits})+'%'
+ const ranking=useSlidingWindow(rows.length,8,4000,'percent'+date)
+ const actions=useSlidingWindow(actionRanking.length,8,4000,'percent-actions')
+ const visibleRows=rows.slice(ranking.start,ranking.start+8)
+ const visibleActions=actionRanking.slice(actions.start,actions.start+8)
+ const [first,second,third]=rows
+ const loading=data.busy&&!data.updatedAt
+ const emptySales=data.error&&!data.updatedAt?'Não foi possível carregar os dados. Nova tentativa em 1 minuto.':loading?'Carregando dados…':'Nenhuma contribuição registrada neste mês.'
+ const bar=(n:number)=>Math.min(100,Math.max(0,n))+'%'
  return <div className="tv tv-percent">
   <header className="tv-header">
-   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><div><h1>Contribuição para a meta</h1><small>DESEMPENHO EM PORCENTAGEM</small></div></div>
+   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>Contribuição para a meta</h1></div>
    <div className="tv-header-tools">
-    <label className="tv-dates"><span>Mês de referência</span><input type="month" value={date.slice(0,7)} onChange={e=>e.target.value&&setDate(e.target.value+'-01')}/></label>
-    <Link className="tv-percent-back" to={admin?'/admin':'/viewer/board'}>{admin?'Voltar ao admin':'Tela de valores'}</Link>
+    <Link className="tv-switch" to={admin?'/admin':'/viewer/board'}>{admin?'Voltar ao admin':'Ver em valores'}</Link>
+    <label className="tv-dates"><span className="tv-visually-hidden">Mês de referência</span><input type="month" value={date.slice(0,7)} onChange={e=>e.target.value&&setDate(e.target.value+'-01')}/></label>
+    <span className="tv-clock">{monthLabel(date)}, <strong>{clock(now)}</strong></span>
+    {data.error
+     ?<span className="tv-status is-offline" role="status">{data.updatedAt?'Sem atualização desde '+clock(data.updatedAt):'Dados não carregados'}</span>
+     :<span className="tv-status" role="status">{data.updatedAt?'Atualizado às '+clock(data.updatedAt):'Carregando dados'}</span>}
    </div>
   </header>
-  <section className="tv-percent-goal">
-   <div className="tv-percent-goal-head"><div><span className="tv-percent-eyebrow">META MENSAL · {monthLabel(date)}</span><strong>{pct(progress)}</strong><small>da meta alcançada</small></div><div className="tv-percent-goal-side"><span>Meta total</span><strong>100%</strong><small>{data.goals.some(g=>g.month===month)?'Meta cadastrada no sistema':'Meta de referência padrão'}</small></div></div>
-   <div className="tv-percent-track" role="progressbar" aria-label="Percentual da meta mensal alcançado" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100,Math.max(0,progress))}><div style={{width:Math.min(100,Math.max(0,progress))+'%'}}/></div>
-   <div className="tv-percent-foot"><span>Contribuição acumulada da equipe</span><strong>{pct(progress)} de 100%</strong></div>
+
+  <section className="tv-kpis" aria-label="Meta mensal em porcentagem">
+   <div className="tv-goal">
+    <div className="tv-goal-row"><span className="tv-goal-title">Meta de {monthLabel(date)}</span><span>{goal?'Meta cadastrada no sistema':'Meta de referência padrão'}</span></div>
+    <div className="tv-goal-row"><span className="tv-goal-value">{pct(progress,1)} <small>alcançados</small></span><span>Faltam <strong>{pct(remaining,1)}</strong></span></div>
+    <div className="tv-goal-track" role="progressbar" aria-label="Percentual da meta mensal alcançado" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(100,progress))}><div style={{width:bar(progress)}}/></div>
+   </div>
+   <div className="tv-metrics">
+    <div className="tv-metric"><span>Meta total</span><strong>100%</strong><small>Soma das contribuições da equipe</small></div>
+    <div className="tv-metric"><span>Contribuição da equipe</span><strong>{pct(progress)}</strong><small>Acumulado no mês</small></div>
+    <div className="tv-metric"><span>Colaboradoras contribuindo</span><strong>{contributing}<small className="tv-metric-of"> de {activeSellers}</small></strong><small>Com vendas no mês</small></div>
+   </div>
   </section>
-  <section className="tv-percent-body">
+
+  <section className="tv-body">
    <div className="tv-panel tv-podium">
-    <div className="tv-panel-head"><h2>Pódio de contribuição</h2><span>Top 3</span></div>
-    {first?<div className="tv-percent-podium-list">{[first,second,third].map((r,i)=>r?<div className={'tv-percent-podium-item place-'+(i+1)} key={r.seller.id}>
-      <span className="tv-percent-place">{i+1}º</span><TvAvatar seller={r.seller} className={i===0?'xl':'lg'}/>
-      <strong>{r.seller.full_name}</strong><b>{pct(r.contribution)}</b>
-     </div>:null)}</div>:<p className="tv-empty">Nenhuma contribuição registrada neste mês.</p>}
+    <div className="tv-panel-head"><h2>Pódio</h2><span>Contribuição no mês</span></div>
+    {first?<div className="tv-podium-body">
+     <div className="tv-podium-first">
+      <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
+      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{pct(first.contribution)}</span><small>da meta do mês</small>
+     </div>
+     <div className="tv-podium-rest">
+      {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
+       <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
+       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{pct(r.contribution)}</span><small>da meta</small></div>
+      </div>:null)}
+     </div>
+    </div>:<p className="tv-empty">{emptySales}</p>}
    </div>
+
    <div className="tv-panel tv-ranking tv-percent-ranking">
-    <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{rows.length} vendedores</span></div>
-    <div className="tv-percent-table-wrap"><table><thead><tr><th>Pos.</th><th>Vendedor</th><th>Contribuição da meta</th></tr></thead><tbody>
-     {rows.map((r,i)=><tr key={r.seller.id}><td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td><td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span></span></td><td><div className="tv-percent-cell"><strong>{pct(r.contribution)}</strong><span className="tv-percent-mini-track"><i style={{width:Math.min(100,Math.max(0,r.contribution))+'%'}}/></span></div></td></tr>)}
-    </tbody></table>{rows.length===0&&<p className="tv-empty">Nenhuma venda registrada neste mês.</p>}</div>
+    <div className="tv-panel-head"><h2>Ranking de contribuição</h2><span>{rows.length} {rows.length===1?'colaboradora':'colaboradoras'}</span></div>
+    <table>
+     <thead><tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Contribuição na meta</th></tr></thead>
+     <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;return <tr key={r.seller.id}>
+      <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
+      <td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&<span className="tv-leader">Líder</span>}</span></td>
+      <td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(r.contribution/(first?.contribution||1)*100)}}/></span><strong>{pct(r.contribution)}</strong></span></td>
+     </tr>})}</tbody>
+    </table>
+    {rows.length===0&&<p className="tv-empty">{emptySales}</p>}
    </div>
-   <div className="tv-panel tv-culture tv-percent-actions">
-    <div className="tv-panel-head"><h2>Ranking de boas ações</h2><span>Histórico fixo</span></div>
-    <ol className="tv-actions">{actionRanking.map((r,i)=><li key={r.seller.id}><span className="tv-actions-pos">{String(i+1).padStart(2,'0')}</span><span className="tv-actions-name">{r.seller.full_name}</span><span className="tv-muted">{r.actions} {r.actions===1?'ação':'ações'}</span><span className="tv-stars"><TvStar/>{r.stars}</span></li>)}</ol>
+
+   <div className="tv-panel tv-culture">
+    <div className="tv-panel-head"><h2>Ranking de boas ações</h2><span>Desde o início</span></div>
+    <ol className="tv-actions" key={actions.key}>{visibleActions.map((r,v)=>{const pos=actions.start+v;return <li key={r.seller.id}>
+     <span className="tv-actions-pos">{String(pos+1).padStart(2,'0')}</span><span className="tv-actions-name">{r.seller.full_name}</span>
+     <span className="tv-muted">{r.actions} {r.actions===1?'ação':'ações'}</span>
+     <span className="tv-stars" aria-label={r.stars+(r.stars===1?' estrela':' estrelas')}><TvStar/>{r.stars}</span>
+    </li>})}</ol>
     {actionRanking.length===0&&<p className="tv-empty tv-empty-card">Ainda não há boas ações reconhecidas.</p>}
+    <p className="tv-percent-note">Cada percentual é a participação individual na meta mensal da equipe.</p>
    </div>
   </section>
-  <footer className="tv-percent-footer">Cada percentual representa a participação individual na meta mensal coletiva.</footer>
  </div>
 }
 
