@@ -184,10 +184,9 @@
 
 /* Tela de contribuição percentual (/viewer/percentage): mesmo layout da TV */
 .tv-metric strong .tv-metric-of{font:500 .4em 'DM Sans',sans-serif;letter-spacing:0;color:var(--tv-muted)}
-.tv-percent-ranking th:nth-child(3){width:46%;text-align:left}
+.tv-percent-ranking th:nth-child(3){width:13.5em;text-align:left}
+.tv-percent-ranking th:nth-child(4){width:5.4em}
 .tv-percent-cell{display:flex;align-items:center;gap:.7em}
 .tv-percent-bar{flex:1;height:.5em;background:var(--tv-turquoise-soft);border-radius:1em;overflow:hidden}
 .tv-percent-bar i{display:block;height:100%;background:var(--tv-turquoise);border-radius:inherit}
 .tv-percent-cell strong{width:4.6em;text-align:right;font-weight:700}
-.tv-percent .tv-culture{gap:0}
-.tv-percent-note{margin-top:auto;font-size:1.8em;line-height:1.4;color:var(--tv-muted);padding-top:1em}
