@@ -341,7 +341,7 @@ function PercentageDashboard({data,admin=false}:{data:ReturnType<typeof useData>
    </div>
   </header>
   <section className="tv-percent-goal">
-   <div className="tv-percent-goal-head"><div><span className="tv-percent-eyebrow">META MENSAL · {monthLabel(date)}</span><strong>{pct(progress)}</strong><small>da meta alcançada</small></div><div className="tv-percent-goal-side"><span>Meta total</span><strong>100%</strong><small>{data.goals.some(g=>g.month===month)?'Meta cadastrada no sistema':'Referência padrão: R$ 500.000'}</small></div></div>
+   <div className="tv-percent-goal-head"><div><span className="tv-percent-eyebrow">META MENSAL · {monthLabel(date)}</span><strong>{pct(progress)}</strong><small>da meta alcançada</small></div><div className="tv-percent-goal-side"><span>Meta total</span><strong>100%</strong><small>{data.goals.some(g=>g.month===month)?'Meta cadastrada no sistema':'Meta de referência padrão'}</small></div></div>
    <div className="tv-percent-track" role="progressbar" aria-label="Percentual da meta mensal alcançado" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100,Math.max(0,progress))}><div style={{width:Math.min(100,Math.max(0,progress))+'%'}}/></div>
    <div className="tv-percent-foot"><span>Contribuição acumulada da equipe</span><strong>{pct(progress)} de 100%</strong></div>
   </section>
