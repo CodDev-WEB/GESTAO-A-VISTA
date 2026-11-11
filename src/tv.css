@@ -8,7 +8,7 @@
 .tv{
   --tv-navy:#172538;
   --tv-muted:#586675;
-  --tv-turquoise:#49C3D0;
+  --tv-turquoise:#6DCFD9; /* turquesa da marca #49C3D0 suavizado 20% com branco */
   --tv-turquoise-ink:#1D4650;
   --tv-turquoise-text:#1D7480;
   --tv-turquoise-soft:#EAF8FA;
