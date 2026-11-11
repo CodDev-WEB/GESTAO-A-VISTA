@@ -240,7 +240,7 @@ function Dashboard({data}:{data:ReturnType<typeof useData>}){
   <header className="tv-header">
    <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>O resultado é de todos nós.</h1></div>
    <div className="tv-header-tools">
-    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div>
+    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div><Link className="tv-percent-back" to="/viewer/percentage">Ver em porcentagem</Link>
     {period==='range'
      ?<div className="tv-dates"><label>De<input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
      :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
