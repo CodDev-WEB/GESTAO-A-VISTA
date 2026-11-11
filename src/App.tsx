@@ -351,7 +351,7 @@ function PercentageDashboard({data,admin=false}:{data:ReturnType<typeof useData>
     {first?<div className="tv-percent-podium-list">{[first,second,third].map((r,i)=>r?<div className={'tv-percent-podium-item place-'+(i+1)} key={r.seller.id}>
       <span className="tv-percent-place">{i+1}º</span><TvAvatar seller={r.seller} className={i===0?'xl':'lg'}/>
       <strong>{r.seller.full_name}</strong><b>{pct(r.contribution)}</b>
-     </div>)}</div>:<p className="tv-empty">Nenhuma contribuição registrada neste mês.</p>}
+     </div>:null)}</div>:<p className="tv-empty">Nenhuma contribuição registrada neste mês.</p>}
    </div>
    <div className="tv-panel tv-ranking tv-percent-ranking">
     <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{rows.length} vendedores</span></div>
