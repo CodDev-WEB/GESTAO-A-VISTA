@@ -21,6 +21,8 @@ create table if not exists public.sellers (
   created_at timestamptz not null default now()
 );
 
+alter table public.sellers add column if not exists can_sell boolean not null default true;
+
 create table if not exists public.goals (
   id uuid primary key default gen_random_uuid(),
   month date not null unique,
