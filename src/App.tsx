@@ -303,6 +303,8 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const withoutSector=rows.length-percentRows.length
  const monthRevenue=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).reduce((n,r)=>n+r.revenue,0),[data.sellers,data.sales,date])
  const periodRevenue=rows.reduce((n,r)=>n+r.revenue,0),periodCount=rows.reduce((n,r)=>n+r.count,0)
+ // Faturamento por setor (mesmas colaboradoras do ranking), para conferir com a planilha.
+ const revenueBySector=[...sectors.map(sec=>({key:sec as string,label:sectorName(sec),revenue:rows.filter(r=>r.seller.sector===sec).reduce((n,r)=>n+r.revenue,0)})),{key:'none',label:'Sem setor',revenue:rows.filter(r=>!r.seller.sector).reduce((n,r)=>n+r.revenue,0)}].filter(x=>x.key!=='none'||x.revenue!==0)
  const periodTicket=periodCount?rows.reduce((n,r)=>n+r.ticket*r.count,0)/periodCount:0
  const periodLabel=period==='day'?'no dia':period==='week'?'na semana':period==='range'?'no período':'no mês'
  const savedGoal=data.goals.find(g=>g.month===monthKey(date))
@@ -346,7 +348,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
    </div>
   </header>
 
-  <section className="tv-kpis" aria-label={percent?'Meta mensal e metas dos setores':'Meta mensal e indicadores do período'}>
+  <section className={percent?'tv-kpis':'tv-kpis has-split'} aria-label={percent?'Meta mensal e metas dos setores':'Meta mensal e indicadores do período'}>
    <div className="tv-goal">
     <div className="tv-goal-row"><span className="tv-goal-title">{goalTitle}</span>{percent?<span>{planGoal||savedGoal?'':'Meta padrão'}</span>:<span><strong>{money(goalActual)}</strong> de <strong>{money(goalTarget)}</strong></span>}</div>
     <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{percent?pct(Math.max(0,100-progress),1):money(Math.max(0,goalTarget-goalActual))}</strong></span></div>
@@ -357,10 +359,12 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <strong>{pct(st.percent,1)}</strong>
     <div className="tv-sector-track" role="progressbar" aria-label={'Meta do setor '+sectorName(st.sector)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(100,st.percent))}><i style={{width:bar(st.percent)}}/></div>
     <small>{st.target<=0?'Meta não cadastrada':st.percent>=100?'Superada em '+pct(st.percent-100,1):'Faltam '+pct(100-st.percent,1)} · {st.members.length} {st.members.length===1?'pessoa':'pessoas'}</small>
-   </div>)}</div>:<div className="tv-metrics">
-    <div className="tv-metric"><span>Faturamento do período</span><strong>{money(periodRevenue)}</strong><small>Resultado {periodLabel}</small></div>
+   </div>)}</div>:<div className="tv-metrics tv-metrics-split"><div className="tv-metrics-row">
+    <div className="tv-metric"><span>Faturamento do período</span><strong>{money(periodRevenue)}</strong><small>Loja inteira {periodLabel}</small></div>
     <div className="tv-metric"><span>Ticket médio do período</span><strong>{exactMoney(periodTicket)}</strong><small>{periodCount} {periodCount===1?'venda':'vendas'} {periodLabel}</small></div>
     <div className="tv-metric"><span>Quantidade de vendas</span><strong>{periodCount}</strong><small>Vendas registradas {periodLabel}</small></div>
+   </div>
+   <div className="tv-sector-split" aria-label="Faturamento por setor">{revenueBySector.map(x=><span key={x.key}><b>{x.label}</b><strong>{exactMoney(x.revenue)}</strong><small>{periodRevenue>0?pct(x.revenue/periodRevenue*100,1):'0,0%'}</small></span>)}</div>
    </div>}
   </section>
 
