@@ -142,7 +142,7 @@ function useData(){
     fetchAll('sales_daily','sale_date',false),
     fetchAll('recognitions','recognized_at',false),
     fetchAll('goals','month',false),
-    fetchAll('sector_goals','week_start',false)
+    fetchAll('sector_goals','week_start',false).catch(()=>[])
    ])
    setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setSectorGoals(e as unknown as SectorGoal[]);setUpdatedAt(new Date())
   }catch(e){
