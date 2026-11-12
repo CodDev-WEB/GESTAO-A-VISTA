@@ -200,3 +200,51 @@ using (bucket_id = 'seller-photos' and public.is_admin());
 -- from auth.users where email = 'admin@seudominio.com'
 -- on conflict (id) do update
 -- set full_name = excluded.full_name, role = excluded.role, active = true;
+
+-- Plano de meta comercial por semana (ver migrations/20261112020000_goal_plan.sql)
+-- Bonificação por nível e aumento percentual por setor, definidos por mês.
+alter table public.goals add column if not exists bonus_meta numeric(14,2) not null default 70;
+alter table public.goals add column if not exists bonus_super numeric(14,2) not null default 140;
+alter table public.goals add column if not exists bonus_diamante numeric(14,2) not null default 250;
+alter table public.goals add column if not exists growth_salao numeric(6,2);
+alter table public.goals add column if not exists growth_digital numeric(6,2);
+alter table public.goals add column if not exists growth_checkout numeric(6,2);
+
+create table if not exists public.goal_weeks (
+  id uuid primary key default gen_random_uuid(),
+  month date not null,
+  week_number int not null check (week_number between 1 and 6),
+  start_date date not null,
+  end_date date not null,
+  -- Meta da loja e divisão por canal (R$)
+  store_target numeric(14,2) not null default 0 check (store_target >= 0),
+  salao_revenue_target numeric(14,2) not null default 0 check (salao_revenue_target >= 0),
+  digital_revenue_target numeric(14,2) not null default 0 check (digital_revenue_target >= 0),
+  -- Metas coletivas dos setores
+  salao_sales_target numeric(14,2) not null default 0 check (salao_sales_target >= 0),          -- quantidade de vendas
+  digital_conversions_target numeric(14,2) not null default 0 check (digital_conversions_target >= 0), -- conversões
+  checkout_ticket_target numeric(14,2) not null default 0 check (checkout_ticket_target >= 0),   -- ticket médio (R$)
+  -- Metas individuais por pessoa (R$): Meta, Super e Diamante
+  salao_meta numeric(14,2) not null default 0,
+  salao_super numeric(14,2) not null default 0,
+  salao_diamante numeric(14,2) not null default 0,
+  digital_meta numeric(14,2) not null default 0,
+  digital_super numeric(14,2) not null default 0,
+  digital_diamante numeric(14,2) not null default 0,
+  checkout_meta numeric(14,2) not null default 0,
+  checkout_super numeric(14,2) not null default 0,
+  checkout_diamante numeric(14,2) not null default 0,
+  created_at timestamptz not null default now(),
+  constraint goal_weeks_dates_check check (end_date >= start_date),
+  constraint goal_weeks_month_week_key unique (month, week_number)
+);
+
+alter table public.goal_weeks enable row level security;
+
+drop policy if exists "authenticated read goal weeks" on public.goal_weeks;
+create policy "authenticated read goal weeks" on public.goal_weeks
+for select to authenticated using (true);
+
+drop policy if exists "admins manage goal weeks" on public.goal_weeks;
+create policy "admins manage goal weeks" on public.goal_weeks
+for all to authenticated using (public.is_admin()) with check (public.is_admin());

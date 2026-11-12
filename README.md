@@ -118,3 +118,21 @@ A equipe pode ser vinculada a um dos setores: **Salão**, **Digital** ou **Check
 ### Migração do Supabase
 
 Execute no SQL Editor o arquivo `supabase/migrations/20261112000000_sector_goals.sql` para adicionar o campo `sellers.sector`, a tabela `sector_goals` e suas políticas RLS. A migração preserva os dados existentes. Depois, atribua um setor a cada colaborador participante de vendas e cadastre as metas semanais no menu **Administração → Metas**.
+
+## Plano de meta comercial (a partir de novembro/2026)
+
+As metas seguem o **Plano de Meta Comercial** do mês, cadastrado em **Administração → Metas**:
+
+- **Semanas com datas próprias**, como no plano impresso (ex.: 01 a 08, 09 a 15, 16 a 22 e 23 a 30).
+- Para cada semana: **meta da loja** e divisão em **venda salão** e **venda digital** (R$); **metas dos setores**: Salão em quantidade de vendas, Digital em conversões e Checkout em **ticket médio**; e **metas individuais por pessoa** em R$ para cada setor, com os níveis **Meta**, **Super** e **Diamante**.
+- No mês: meta mensal da loja, **bonificação** por nível (Meta, Super, Diamante) e **aumento percentual por setor** (registrado como referência).
+
+Na tela de %:
+
+- A meta de cada filtro (Diário, Semanal, Mensal ou Período) é a soma das semanas do plano, proporcional aos dias de cada semana que caem no período. O ticket médio do Checkout é a média das semanas, ponderada pelos dias.
+- O ranking mostra o **% da meta individual** (faturamento da pessoa ÷ meta individual do setor), o **% da cota do setor** (Salão e Digital: vendas da pessoa ÷ meta do setor dividida pelo número de pessoas; Checkout: ticket da pessoa ÷ ticket meta) e o **nível** alcançado. Os valores das bonificações aparecem só no admin.
+- Sem plano cadastrado para o período, a tela usa as metas semanais por setor do modelo anterior.
+
+### Migração do plano
+
+Execute no SQL Editor do Supabase o arquivo `supabase/migrations/20261112020000_goal_plan.sql`. Ele cria a tabela `goal_weeks`, adiciona bonificação e aumento por setor à tabela `goals` e já cadastra o plano de novembro de 2026. É seguro executar mais de uma vez.
