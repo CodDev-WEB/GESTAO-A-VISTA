@@ -187,7 +187,7 @@ function rankRows(sellers:Seller[],sales:Sale[],period:Period,date:string,rangeE
   const rows=sales.filter(x=>x.seller_id===s.id&&x.sale_date>=start&&x.sale_date<=end)
   const revenue=rows.reduce((n,x)=>n+Number(x.revenue),0),count=rows.reduce((n,x)=>n+Number(x.sales_count),0)
   const grossRevenue=rows.reduce((n,x)=>n+Number(x.gross_revenue??Math.max(Number(x.revenue),0)),0)
-  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0}
+  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0,sector:s.sector,contribution:0,metricActual:0}
  }).sort((a,b)=>b.revenue-a.revenue||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
 }
 const periodTag=(p:Period)=>p==='day'?'Hoje':p==='week'?'Esta semana':p==='range'?'Período selecionado':'Este mês'
