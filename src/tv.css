@@ -190,3 +190,13 @@
 .tv-percent-bar{flex:1;height:.5em;background:var(--tv-turquoise-soft);border-radius:1em;overflow:hidden}
 .tv-percent-bar i{display:block;height:100%;background:var(--tv-turquoise);border-radius:inherit}
 .tv-percent-cell strong{width:4.6em;text-align:right;font-weight:700}
+
+/* Destaque discreto para as três últimas posições do ranking de vendas. */
+.tv-ranking tr.tv-bottom-three td{background:#FFF0EF;color:#8E2A23;border-bottom-color:#F5D6D3}
+.tv-ranking tr.tv-bottom-three .tv-pos{color:#A9443D}
+.tv-ranking tr.tv-bottom-three .tv-avatar{filter:saturate(.78)}
+.seller-sales-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:9px!important;min-width:220px;font-size:10px!important;color:#526171!important}
+.seller-sales-toggle input{width:16px!important;height:16px;accent-color:#49C3D0}
+.sales-link-on,.sales-link-off{margin-left:auto;border:0;border-radius:7px;padding:7px 10px;font-size:9px;font-weight:800;white-space:nowrap;cursor:pointer}
+.sales-link-on{background:#EAF8FA;color:#246D76}
+.sales-link-off{background:#FFF0EF;color:#A9443D}
