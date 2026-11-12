@@ -243,10 +243,8 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const savedGoal=data.goals.find(g=>g.month===monthKey(date))
  // Na tela de %, sem meta cadastrada vale a referência padrão definida para essa tela.
  const target=Number(savedGoal?.monthly_target??(percent?500000:defaultGoal.monthly_target))
- const share=(revenue:number)=>target>0?revenue/target*100:0
  const pct=(n:number,digits=2)=>n.toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits})+'%'
  const bar=(n:number)=>Math.min(100,Math.max(0,n))+'%'
- const contributing=rows.filter(r=>r.revenue>0).length,activeSellers=data.sellers.filter(s=>s.active).length
  const progress=target?Math.max(0,Math.min(100,monthRevenue/target*100)):0
  // O ranking de boas ações é histórico e independente dos filtros de vendas.
  const actionRanking=useMemo(()=>data.sellers.filter(s=>s.active).map(s=>{
