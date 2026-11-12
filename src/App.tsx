@@ -11,7 +11,9 @@ import {
 } from 'lucide-react'
 import { supabase, hasSupabase } from './lib/supabase'
 
-type Seller = { id:string; full_name:string; email:string|null; photo_url:string|null; active:boolean; can_sell?:boolean }
+type Sector = 'salao'|'digital'|'checkout'
+type Seller = { id:string; full_name:string; email:string|null; photo_url:string|null; active:boolean; can_sell?:boolean; sector?:Sector|null }
+type SectorGoal = { id:string; sector:Sector; week_start:string; target:number }
 type Sale = { id:string; seller_id:string; sale_date:string; revenue:number; sales_count:number; gross_revenue?:number; refund_amount?:number }
 type Recognition = { id:string; seller_id:string; stars:number; kind:string; title:string; description:string; recognized_at:string }
 type Goal = { month:string; monthly_target:number; daily_target:number }
@@ -118,13 +120,13 @@ function useSession(){
  return {user,profile,loading,profileError}
 }
 function useData(){
- const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date())
+ const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[sectorGoals,setSectorGoals]=useState<SectorGoal[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date())
  const load=useCallback(async()=>{
   const client=supabase
   if(!client)return
   setBusy(true);setError('')
   try{
-   const fetchAll=async(table:'sellers'|'sales_daily'|'recognitions'|'goals',column:string,ascending=true)=>{
+   const fetchAll=async(table:'sellers'|'sales_daily'|'recognitions'|'goals'|'sector_goals',column:string,ascending=true)=>{
     const all:Record<string,unknown>[]=[]
     const pageSize=1000
     for(let offset=0;;offset+=pageSize){
@@ -135,13 +137,14 @@ function useData(){
     }
     return all
    }
-   const [a,b,c,d]=await Promise.all([
+   const [a,b,c,d,e]=await Promise.all([
     fetchAll('sellers','full_name'),
     fetchAll('sales_daily','sale_date',false),
     fetchAll('recognitions','recognized_at',false),
-    fetchAll('goals','month',false)
+    fetchAll('goals','month',false),
+    fetchAll('sector_goals','week_start',false)
    ])
-   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setUpdatedAt(new Date())
+   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setSectorGoals(e as unknown as SectorGoal[]);setUpdatedAt(new Date())
   }catch(e){
    setError(e instanceof Error?e.message:'Não foi possível carregar os dados do Supabase.')
   }finally{setBusy(false)}
@@ -163,7 +166,7 @@ function useData(){
   document.addEventListener('visibilitychange',refresh)
   return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh)}
  },[load])
- return {sellers,sales,recognitions,goals,setSellers,setSales,setRecognitions,setGoals,load,busy,error,updatedAt}
+ return {sellers,sales,recognitions,goals,sectorGoals,setSellers,setSales,setRecognitions,setGoals,setSectorGoals,load,busy,error,updatedAt}
 }
 
 function Avatar({seller,size='md',index=0}:{seller:Seller;size?:'sm'|'md'|'lg'|'xl';index?:number}){
@@ -189,6 +192,10 @@ function rankRows(sellers:Seller[],sales:Sale[],period:Period,date:string,rangeE
 }
 const periodTag=(p:Period)=>p==='day'?'Hoje':p==='week'?'Esta semana':p==='range'?'Período selecionado':'Este mês'
 const periodTabs:[Period,string][]=[['day','Diário'],['week','Semanal'],['month','Mensal'],['range','Período']]
+const sectors:Sector[]=['salao','digital','checkout']
+const sectorLabel=(s:Sector)=>s==='salao'?'SALÃO':s==='digital'?'DIGITAL':'CHECKOUT'
+const weekStart=(iso:string)=>dateRange('week',iso)[0]
+const sectorActual=(sector:Sector,sales:Sale[],sellerIds:string[],start:string,end:string)=>sales.filter(x=>sellerIds.includes(x.seller_id)&&x.sale_date>=start&&x.sale_date<=end).reduce((sum,x)=>sum+(sector==='checkout'?Number(x.revenue):Number(x.sales_count)),0)
 const sellerColor=(id:string)=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return ['#B07A5A','#6E8CA6','#7E9A86','#8A7FB0','#5E8F9E','#A0708A','#7A8F5E','#9A7A50'][h%8]}
 const clock=(d:Date)=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
 const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','')
@@ -217,6 +224,18 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
  const rangeEnd=endDate>=date?endDate:date
  const rows=useMemo(()=>rankRows(data.sellers,data.sales,period,date,rangeEnd),[data.sellers,data.sales,period,date,rangeEnd])
+ const sectorWindow=period==='week'?dateRange('week',date):dateRange('month',date)
+ const sectorStats=useMemo(()=>sectors.map(sector=>{
+  const members=data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector===sector)
+  const weeks=data.sectorGoals.filter(g=>g.sector===sector&&(period==='week'?g.week_start===sectorWindow[0]:g.week_start>=sectorWindow[0]&&g.week_start<=sectorWindow[1]))
+  const target=weeks.reduce((sum,g)=>sum+Number(g.target),0)
+  const actual=sectorActual(sector,data.sales,members.map(s=>s.id),sectorWindow[0],sectorWindow[1])
+  return {sector,members,target,actual,remaining:Math.max(0,target-actual),percent:target>0?actual/target*100:0,individualTarget:members.length?target/members.length:0}
+ }),[data.sellers,data.sales,data.sectorGoals,period,sectorWindow[0],sectorWindow[1]])
+ const sectorBySeller=new Map<string,{sector:Sector;target:number;actual:number;percent:number}>()
+ for(const st of sectorStats)for(const seller of st.members){const actual=sectorActual(st.sector,data.sales,[seller.id],sectorWindow[0],sectorWindow[1]);sectorBySeller.set(seller.id,{sector:st.sector,target:st.individualTarget,actual,percent:st.individualTarget>0?actual/st.individualTarget*100:0})}
+ const percentRows=useMemo(()=>rows.filter(r=>r.seller.sector&&sectorBySeller.has(r.seller.id)).map(r=>({...r,contribution:sectorBySeller.get(r.seller.id)!.percent,sector:sectorBySeller.get(r.seller.id)!.sector,metricActual:sectorBySeller.get(r.seller.id)!.actual})).sort((a,b)=>b.contribution-a.contribution||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')),[rows,sectorStats,data.sales,sectorWindow[0],sectorWindow[1]])
+ const displayRows=percent?percentRows:rows
  const monthRevenue=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).reduce((n,r)=>n+r.revenue,0),[data.sellers,data.sales,date])
  const periodRevenue=rows.reduce((n,r)=>n+r.revenue,0),periodCount=rows.reduce((n,r)=>n+r.count,0)
  const periodTicket=periodCount?rows.reduce((n,r)=>n+r.ticket*r.count,0)/periodCount:0
@@ -236,18 +255,18 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')),[data.sellers,data.recognitions])
  const recentRecognitions=useMemo(()=>[...data.recognitions].filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at)).slice(0,3),[data.recognitions])
  const sellerById=useMemo(()=>new Map(data.sellers.map(s=>[s.id,s])),[data.sellers])
- const ranking=useSlidingWindow(rows.length,8,4000,period+date+endDate)
+ const ranking=useSlidingWindow(displayRows.length,8,4000,period+date+endDate)
  const actions=useSlidingWindow(actionRanking.length,4,4000,'actions')
- const visibleRows=rows.slice(ranking.start,ranking.start+8)
+ const visibleRows=displayRows.slice(ranking.start,ranking.start+8)
  const visibleActions=actionRanking.slice(actions.start,actions.start+4)
- const [first,second,third]=rows
+ const [first,second,third]=displayRows
  const loading=data.busy&&!data.updatedAt
  const emptySales=data.error&&!data.updatedAt?'Não foi possível carregar os dados. Nova tentativa em 1 minuto.':loading?'Carregando dados…':'Nenhuma venda registrada neste período.'
  return <div className="tv">
   <header className="tv-header">
    <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>{percent?'Contribuição para a meta':'O resultado é de todos nós.'}</h1></div>
    <div className="tv-header-tools">
-    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div>{percent?<Link className="tv-switch" to={admin?'/admin':'/viewer/board'}>{admin?'Voltar ao admin':'Ver em valores'}</Link>:<Link className="tv-switch" to="/viewer/percentage">Ver em %</Link>}
+    <div className="tv-periods" role="group" aria-label="Período">{(percent?periodTabs.filter(([p])=>p==='week'||p==='month'):periodTabs).map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div>{percent?<Link className="tv-switch" to={admin?'/admin':'/viewer/board'}>{admin?'Voltar ao admin':'Ver em valores'}</Link>:<Link className="tv-switch" to="/viewer/percentage">Ver em %</Link>}
     {period==='range'
      ?<div className="tv-dates"><label>De<input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><label>Até<input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
      :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
@@ -264,11 +283,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{percent?pct(Math.max(0,100-progress),1):money(Math.max(0,target-monthRevenue))}</strong></span></div>
     <div className="tv-goal-track" role="progressbar" aria-label="Progresso da meta mensal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
    </div>
-   {percent?<div className="tv-metrics">
-    <div className="tv-metric"><span>Contribuição do período</span><strong>{pct(share(periodRevenue))}</strong><small>Soma das contribuições {periodLabel}</small></div>
-    <div className="tv-metric"><span>Quantidade de vendas</span><strong>{periodCount}</strong><small>Vendas registradas {periodLabel}</small></div>
-    <div className="tv-metric"><span>Colaboradoras contribuindo</span><strong>{contributing}<small className="tv-metric-of"> de {activeSellers}</small></strong><small>Com vendas {periodLabel}</small></div>
-   </div>:<div className="tv-metrics">
+   {percent?<div className="tv-sector-metrics">{sectorStats.map(st=><article className="tv-sector-card" key={st.sector}><div className="tv-sector-head"><strong>{sectorLabel(st.sector)}</strong><span>{period==='week'?'META DA SEMANA':'META DO MÊS'}</span></div><strong className="tv-sector-percent">{pct(st.percent,1)}</strong><div className="tv-sector-detail">{st.sector==='checkout'?exactMoney(st.actual):st.actual.toLocaleString('pt-BR')} de {st.sector==='checkout'?exactMoney(st.target):st.target.toLocaleString('pt-BR')} {st.sector==='checkout'?'faturados':st.sector==='salao'?'vendas':'conversões'}</div><div className="tv-sector-track"><i style={{width:Math.min(100,Math.max(0,st.percent))+'%'}}/></div><small>{st.percent>=100?'Meta superada — '+pct(st.percent,1):'Faltam '+(st.sector==='checkout'?exactMoney(st.remaining):st.remaining.toLocaleString('pt-BR'))} · {st.members.length} participantes</small></article>)}</div>:<div className="tv-metrics">
     <div className="tv-metric"><span>Faturamento do período</span><strong>{money(periodRevenue)}</strong><small>Resultado {periodLabel}</small></div>
     <div className="tv-metric"><span>Ticket médio do período</span><strong>{exactMoney(periodTicket)}</strong><small>{periodCount} {periodCount===1?'venda':'vendas'} {periodLabel}</small></div>
     <div className="tv-metric"><span>Quantidade de vendas</span><strong>{periodCount}</strong><small>Vendas registradas {periodLabel}</small></div>
@@ -281,32 +296,32 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(share(first.revenue)):money(first.revenue)}</span><small>{first.count} {first.count===1?'venda':'vendas'}</small>
+      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span><small>{first.count} {first.count===1?'venda':'vendas'}</small>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(share(r.revenue)):money(r.revenue)}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
+       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}
    </div>
 
    <div className={percent?'tv-panel tv-ranking tv-percent-ranking':'tv-panel tv-ranking'}>
-    <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{rows.length} {rows.length===1?'colaboradora':'colaboradoras'}</span></div>
+    <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{displayRows.length} {displayRows.length===1?'colaboradora':'colaboradoras'}</span></div>
     <table>
      <thead>{percent
       ?<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Contribuição na meta</th><th scope="col">Vendas</th></tr>
       :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Valor vendido</th><th scope="col">Vendas</th><th scope="col">Ticket médio</th></tr>}</thead>
-     <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=rows.length>3&&i>=rows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
+     <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=displayRows.length>3&&i>=displayRows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
       <td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&<span className="tv-leader">Líder</span>}</span></td>
       {percent
-       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?share(r.revenue)/Math.max(share(first.revenue),0.0001)*100:0)}}/></span><strong>{pct(share(r.revenue))}</strong></span></td><td className="tv-num tv-muted">{r.count}</td></>
+       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?r.contribution/Math.max(first.contribution,0.0001)*100:0)}}/></span><strong>{pct(r.contribution)}</strong></span></td><td className="tv-num tv-muted">{r.count}</td></>
        :<><td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td></>}
      </tr>})}</tbody>
     </table>
-    {rows.length===0&&<p className="tv-empty">{emptySales}</p>}
+    {displayRows.length===0&&<p className="tv-empty">{percent?'Cadastre os setores das colaboradoras e as metas semanais no admin.':emptySales}</p>}
    </div>
 
    <div className="tv-panel tv-culture">
