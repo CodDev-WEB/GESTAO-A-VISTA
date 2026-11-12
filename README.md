@@ -108,11 +108,11 @@ A equipe pode ser vinculada a um dos setores: **Salão**, **Digital** ou **Check
 - **Salão:** meta semanal coletiva em quantidade de vendas.
 - **Digital:** meta semanal coletiva em quantidade de conversões.
 - **Checkout:** meta semanal coletiva em faturamento (R$).
-- O painel percentual apresenta os filtros **Semanal** e **Mensal**.
+- O painel percentual tem os mesmos filtros da TV: **Diário**, **Semanal**, **Mensal** e **Período**.
 - O percentual de cada colaborador é calculado sobre sua cota individual: meta semanal do setor dividida pelo número de colaboradores ativos e habilitados para vendas naquele setor.
 - O progresso coletivo do setor é calculado sobre a meta integral do setor.
 - O progresso não é limitado a 100%: resultados de 120%, 130% ou mais são exibidos integralmente. A barra visual permanece preenchida em 100% para não ultrapassar o cartão, enquanto o percentual numérico mostra a superação.
-- No filtro mensal, as metas semanais cujas semanas cruzam o mês são somadas, e os resultados são apurados apenas dentro das datas do mês.
+- A meta de cada setor é proporcional aos dias do filtro: cada dia vale 1/7 da meta semanal. No diário vale 1/7 da semana; no semanal, a semana inteira; no mensal e no período, a soma dos dias de cada semana que caem dentro das datas. Os resultados são apurados nas mesmas datas.
 - A tela de valores continua usando os indicadores monetários e os filtros próprios. O ranking de boas ações permanece histórico e independente dos filtros de vendas.
 
 ### Migração do Supabase

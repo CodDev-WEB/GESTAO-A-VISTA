@@ -184,7 +184,7 @@
 
 /* Tela de contribuição percentual (/viewer/percentage): mesmo layout da TV */
 .tv-metric strong .tv-metric-of{font:500 .4em 'DM Sans',sans-serif;letter-spacing:0;color:var(--tv-muted)}
-.tv-percent-ranking th:nth-child(3){width:13.5em;text-align:left}
+.tv-percent-ranking th:nth-child(3){width:10.5em;text-align:left}
 .tv-percent-ranking th:nth-child(4){width:5.4em}
 .tv-percent-cell{display:flex;align-items:center;gap:.7em}
 .tv-percent-bar{flex:1;height:.5em;background:var(--tv-turquoise-soft);border-radius:1em;overflow:hidden}
@@ -201,21 +201,15 @@
 .sales-link-on{background:#EAF8FA;color:#246D76}
 .sales-link-off{background:#FFF0EF;color:#A9443D}
 
-/* Tela de %: cartões de meta por setor (Salão, Digital, Checkout) */
-.tv-kpis-sectors{grid-template-columns:repeat(3,minmax(0,1fr));height:18.8em}
-.tv-sector-card{min-width:0;background:var(--tv-white);border:.2em solid var(--tv-turquoise-soft);border-radius:1.6em;padding:2.4em 3em;display:flex;flex-direction:column;justify-content:space-between}
-.tv-sector-card.is-done{background:var(--tv-yellow-soft);border-color:var(--tv-yellow)}
-.tv-sector-head{display:flex;justify-content:space-between;align-items:baseline;gap:1em}
-.tv-sector-head strong{font:800 2.6em Manrope,sans-serif;letter-spacing:-.01em}
-.tv-sector-head span{font-size:2em;color:var(--tv-muted);white-space:nowrap}
-.tv-sector-percent{font:800 5.6em/1 Manrope,sans-serif;letter-spacing:-.025em}
-.tv-sector-track{height:1.2em;background:var(--tv-turquoise-soft);border-radius:1.2em;overflow:hidden}
+/* Tela de %: Salão, Digital e Checkout no cartão de indicadores, ao lado da meta geral */
+.tv-sector span b{font-weight:800;color:var(--tv-navy)}
+.tv-sector-track{height:1em;background:var(--tv-turquoise-soft);border-radius:1em;overflow:hidden}
 .tv-sector-track i{display:block;height:100%;background:var(--tv-turquoise);border-radius:inherit;transition:width .6s ease}
-.tv-sector-card.is-done .tv-sector-track{background:#FFFFFF}
-.tv-sector-card.is-done .tv-sector-track i{background:var(--tv-yellow)}
-.tv-sector-foot{display:flex;justify-content:space-between;gap:1em;font-size:2em;color:var(--tv-muted);white-space:nowrap}
+.tv-metric.tv-sector.is-done{background:var(--tv-yellow-soft)}
+.tv-metric.tv-sector.is-done .tv-sector-track{background:#FFFFFF}
+.tv-metric.tv-sector.is-done .tv-sector-track i{background:var(--tv-yellow)}
+.tv-sector-tag{flex:none;font-size:.7em;font-weight:700;color:var(--tv-turquoise-ink);background:var(--tv-turquoise-soft);border-radius:.4em;padding:.1em .55em}
 @media (prefers-reduced-motion:reduce){.tv-sector-track i{transition:none}}
-@media (max-width:900px),(orientation:portrait){.tv-kpis-sectors{grid-template-columns:1fr;height:auto}.tv-sector-card{gap:1.6em}}
 
 /* Admin: lista de metas semanais com título e valor em linhas separadas */
 .goal-list-text{display:grid;gap:2px}
