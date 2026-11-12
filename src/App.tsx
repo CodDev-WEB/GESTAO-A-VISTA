@@ -227,7 +227,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const sectorWindow=period==='week'?dateRange('week',date):dateRange('month',date)
  const sectorStats=useMemo(()=>sectors.map(sector=>{
   const members=data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector===sector)
-  const weeks=data.sectorGoals.filter(g=>g.sector===sector&&(period==='week'?g.week_start===sectorWindow[0]:g.week_start>=sectorWindow[0]&&g.week_start<=sectorWindow[1]))
+  const weeks=data.sectorGoals.filter(g=>g.sector===sector&&(period==='week'?g.week_start===sectorWindow[0]:g.week_start<=sectorWindow[1]&&new Date(g.week_start+'T12:00:00').getTime()+6*86400000>=new Date(sectorWindow[0]+'T12:00:00').getTime()))
   const target=weeks.reduce((sum,g)=>sum+Number(g.target),0)
   const actual=sectorActual(sector,data.sales,members.map(s=>s.id),sectorWindow[0],sectorWindow[1])
   return {sector,members,target,actual,remaining:Math.max(0,target-actual),percent:target>0?actual/target*100:0,individualTarget:members.length?target/members.length:0}
@@ -296,12 +296,12 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span><small>{first.count} {first.count===1?'venda':'vendas'}</small>
+      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span><small>{percent?(first.sector==='checkout'?exactMoney(first.metricActual):first.metricActual.toLocaleString('pt-BR')+(first.sector==='salao'?' vendas':' conversões')):first.count+' '+(first.count===1?'venda':'vendas')}</small>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
+       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}</span><small>{percent?(r.sector==='checkout'?exactMoney(r.metricActual):r.metricActual.toLocaleString('pt-BR')+(r.sector==='salao'?' vendas':' conversões')):r.count+' '+(r.count===1?'venda':'vendas')}</small></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}
@@ -311,7 +311,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{displayRows.length} {displayRows.length===1?'colaboradora':'colaboradoras'}</span></div>
     <table>
      <thead>{percent
-      ?<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Contribuição na meta</th><th scope="col">Vendas</th></tr>
+      ?<tr><th scope="col">Pos.</th><th scope="col">Colaborador</th><th scope="col">Contribuição na meta individual</th><th scope="col">Indicador</th></tr>
       :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Valor vendido</th><th scope="col">Vendas</th><th scope="col">Ticket médio</th></tr>}</thead>
      <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=displayRows.length>3&&i>=displayRows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
