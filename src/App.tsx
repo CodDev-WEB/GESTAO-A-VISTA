@@ -281,7 +281,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{percent?pct(Math.max(0,100-progress),1):money(Math.max(0,target-monthRevenue))}</strong></span></div>
     <div className="tv-goal-track" role="progressbar" aria-label="Progresso da meta mensal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
    </div>
-   {percent?<div className="tv-sector-metrics">{sectorStats.map(st=><article className="tv-sector-card" key={st.sector}><div className="tv-sector-head"><strong>{sectorLabel(st.sector)}</strong><span>{period==='week'?'META DA SEMANA':'META DO MÊS'}</span></div><strong className="tv-sector-percent">{pct(st.percent,1)}</strong><div className="tv-sector-detail">{st.sector==='checkout'?exactMoney(st.actual):st.actual.toLocaleString('pt-BR')} de {st.sector==='checkout'?exactMoney(st.target):st.target.toLocaleString('pt-BR')} {st.sector==='checkout'?'faturados':st.sector==='salao'?'vendas':'conversões'}</div><div className="tv-sector-track"><i style={{width:Math.min(100,Math.max(0,st.percent))+'%'}}/></div><small>{st.percent>=100?'Meta superada — '+pct(st.percent,1):'Faltam '+(st.sector==='checkout'?exactMoney(st.remaining):st.remaining.toLocaleString('pt-BR'))} · {st.members.length} participantes</small></article>)}</div>:<div className="tv-metrics">
+   {percent?<div className="tv-sector-metrics">{sectorStats.map(st=><article className="tv-sector-card" key={st.sector}><div className="tv-sector-head"><strong>{sectorLabel(st.sector)}</strong><span>{period==='week'?'META DA SEMANA':'META DO MÊS'}</span></div><strong className="tv-sector-percent">{pct(st.percent,1)}</strong><div className="tv-sector-detail">{st.percent>=100?'Meta superada em '+pct(st.percent-100,1):'Faltam '+pct(100-st.percent,1)+' para atingir a meta'}</div><div className="tv-sector-track"><i style={{width:Math.min(100,Math.max(0,st.percent))+'%'}}/></div><small>{st.members.length} participantes · {sectorLabel(st.sector)}</small></article>)}</div>:<div className="tv-metrics">
     <div className="tv-metric"><span>Faturamento do período</span><strong>{money(periodRevenue)}</strong><small>Resultado {periodLabel}</small></div>
     <div className="tv-metric"><span>Ticket médio do período</span><strong>{exactMoney(periodTicket)}</strong><small>{periodCount} {periodCount===1?'venda':'vendas'} {periodLabel}</small></div>
     <div className="tv-metric"><span>Quantidade de vendas</span><strong>{periodCount}</strong><small>Vendas registradas {periodLabel}</small></div>
@@ -294,12 +294,12 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span><small>{percent?(first.sector==='checkout'?exactMoney(first.metricActual):first.metricActual.toLocaleString('pt-BR')+(first.sector==='salao'?' vendas':' conversões')):first.count+' '+(first.count===1?'venda':'vendas')}</small>
+      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}</span><small>{percent?(r.sector==='checkout'?exactMoney(r.metricActual):r.metricActual.toLocaleString('pt-BR')+(r.sector==='salao'?' vendas':' conversões')):r.count+' '+(r.count===1?'venda':'vendas')}</small></div>
+       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}</span></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}
@@ -309,13 +309,13 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{displayRows.length} {displayRows.length===1?'colaboradora':'colaboradoras'}</span></div>
     <table>
      <thead>{percent
-      ?<tr><th scope="col">Pos.</th><th scope="col">Colaborador</th><th scope="col">Contribuição na meta individual</th><th scope="col">Indicador</th></tr>
+      ?<tr><th scope="col">Pos.</th><th scope="col">Colaborador</th><th scope="col">Contribuição na meta individual</th></tr>
       :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Valor vendido</th><th scope="col">Vendas</th><th scope="col">Ticket médio</th></tr>}</thead>
      <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=displayRows.length>3&&i>=displayRows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
       <td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&<span className="tv-leader">Líder</span>}</span></td>
       {percent
-       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?r.contribution/Math.max(first.contribution,0.0001)*100:0)}}/></span><strong>{pct(r.contribution)}</strong></span></td><td className="tv-num tv-muted">{r.sector==='checkout'?exactMoney(r.metricActual):r.metricActual.toLocaleString('pt-BR')}</td></>
+       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?r.contribution/Math.max(first.contribution,0.0001)*100:0)}}/></span><strong>{pct(r.contribution)}</strong></span></td></>
        :<><td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td></>}
      </tr>})}</tbody>
     </table>
