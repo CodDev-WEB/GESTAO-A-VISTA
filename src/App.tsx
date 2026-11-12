@@ -266,8 +266,14 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const [period,setPeriod]=useState<Period>('month'),[date,setDate]=useState(today()),[endDate,setEndDate]=useState(today()),[now,setNow]=useState(new Date())
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
  const rangeEnd=endDate>=date?endDate:date
- const rows=useMemo(()=>rankRows(data.sellers,data.sales,period,date,rangeEnd),[data.sellers,data.sales,period,date,rangeEnd])
- const sectorWindow:[string,string]=period==='range'?[date,rangeEnd]:dateRange(period,date)
+ // Semanas seguem o plano de metas (ex.: 01 a 08, 09 a 15); sem plano para a data, vale segunda a domingo.
+ const planWeek=data.goalWeeks.find(w=>date>=w.start_date&&date<=w.end_date)
+ const monthPlanWeeks=data.goalWeeks.filter(w=>w.month===monthKey(date)).sort((a,b)=>a.week_number-b.week_number)
+ const sectorWindow:[string,string]=period==='range'?[date,rangeEnd]:period==='week'&&planWeek?[planWeek.start_date,planWeek.end_date]:dateRange(period,date)
+ const rows=useMemo(()=>rankRows(data.sellers,data.sales,'range',sectorWindow[0],sectorWindow[1]),[data.sellers,data.sales,sectorWindow[0],sectorWindow[1]])
+ const shortDay=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})
+ const weekName=(w:GoalWeek)=>w.week_number+'ª semana'
+ const windowTag=period==='week'&&planWeek?weekName(planWeek)+' · '+shortDay(planWeek.start_date)+' a '+shortDay(planWeek.end_date):period==='day'?(date===today()?'Hoje':shortDay(date)):period==='month'?(monthKey(date)===monthKey(today())?'Este mês':monthLabel(date)):periodTag(period)
  // Plano de meta comercial do período (semanas com datas próprias). Sem plano cadastrado, vale a meta semanal antiga por setor.
  const plan=useMemo(()=>planForWindow(data.goalWeeks,sectorWindow[0],sectorWindow[1]),[data.goalWeeks,sectorWindow[0],sectorWindow[1]])
  const sectorStats=useMemo(()=>sectors.map(sector=>{
@@ -304,7 +310,11 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const target=Number(savedGoal?.monthly_target??(percent?500000:defaultGoal.monthly_target))
  const pct=(n:number,digits=2)=>n.toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits})+'%'
  const bar=(n:number)=>Math.min(100,Math.max(0,n))+'%'
- const progress=target?Math.max(0,Math.min(100,monthRevenue/target*100)):0
+ const planGoal=period!=='month'&&plan.covered&&plan.store>0
+ const goalTarget=planGoal?plan.store:target
+ const goalActual=planGoal?periodRevenue:monthRevenue
+ const goalTitle=!planGoal?(percent?'Meta geral de ':'Meta de ')+monthLabel(date):period==='day'?'Meta do dia '+shortDay(date):period==='week'&&planWeek?'Meta da '+weekName(planWeek):'Meta do período'
+ const progress=goalTarget?Math.max(0,Math.min(100,goalActual/goalTarget*100)):0
  // O ranking de boas ações é histórico e independente dos filtros de vendas.
  const actionRanking=useMemo(()=>data.sellers.filter(s=>s.active).map(s=>{
   const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0)
@@ -326,7 +336,9 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div>{percent?<Link className="tv-switch" to={admin?'/admin':'/viewer/board'}>{admin?'Admin':'Ver em R$'}</Link>:<Link className="tv-switch" to="/viewer/percentage">Ver em %</Link>}
     {period==='range'
      ?<div className="tv-dates"><label><span className="tv-visually-hidden">Data inicial</span><input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><span aria-hidden="true">a</span><label><span className="tv-visually-hidden">Data final</span><input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
-     :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
+     :period==='week'&&monthPlanWeeks.length>0&&planWeek
+      ?<label className="tv-dates"><span className="tv-visually-hidden">Semana do plano</span><select value={planWeek.week_number} onChange={e=>{const w=monthPlanWeeks.find(x=>x.week_number===Number(e.target.value));if(w){setDate(w.start_date);setEndDate(w.start_date)}}}>{monthPlanWeeks.map(w=><option key={w.week_number} value={w.week_number}>{weekName(w)} ({shortDay(w.start_date)} a {shortDay(w.end_date)})</option>)}</select></label>
+           :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
     <span className="tv-clock">{period!=='range'&&<>{longDate(date)}, </>}<strong>{clock(now)}</strong></span>
     {data.error
      ?<span className="tv-status is-offline" role="status">{data.updatedAt?'Sem atualização desde '+clock(data.updatedAt):'Dados não carregados'}</span>
@@ -336,9 +348,9 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
 
   <section className="tv-kpis" aria-label={percent?'Meta mensal e metas dos setores':'Meta mensal e indicadores do período'}>
    <div className="tv-goal">
-    <div className="tv-goal-row"><span className="tv-goal-title">{percent?'Meta geral de ':'Meta de '}{monthLabel(date)}</span>{percent?<span>{savedGoal?'':'Meta padrão'}</span>:<span><strong>{money(monthRevenue)}</strong> de <strong>{money(target)}</strong></span>}</div>
-    <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{percent?pct(Math.max(0,100-progress),1):money(Math.max(0,target-monthRevenue))}</strong></span></div>
-    <div className="tv-goal-track" role="progressbar" aria-label="Progresso da meta mensal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
+    <div className="tv-goal-row"><span className="tv-goal-title">{goalTitle}</span>{percent?<span>{planGoal||savedGoal?'':'Meta padrão'}</span>:<span><strong>{money(goalActual)}</strong> de <strong>{money(goalTarget)}</strong></span>}</div>
+    <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{percent?pct(Math.max(0,100-progress),1):money(Math.max(0,goalTarget-goalActual))}</strong></span></div>
+    <div className="tv-goal-track" role="progressbar" aria-label={goalTitle} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
    </div>
    {percent?<div className="tv-metrics">{sectorStats.map(st=><div className={st.percent>=100?'tv-metric tv-sector is-done':'tv-metric tv-sector'} key={st.sector}>
     <span><b>{sectorName(st.sector)}</b> · {st.ticketMode?'ticket médio':sectorUnit(st.sector)}</span>
@@ -354,7 +366,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
 
   <section className="tv-body">
    <div className="tv-panel tv-podium">
-    <div className="tv-panel-head"><h2>Pódio</h2><span>{periodTag(period)}</span></div>
+    <div className="tv-panel-head"><h2>Pódio</h2><span>{windowTag}</span></div>
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
