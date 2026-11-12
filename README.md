@@ -99,3 +99,22 @@ Configure a URL pública do Worker em Supabase > Authentication > URL Configurat
 O arquivo `supabase/schema.sql` cria e atualiza as tabelas `profiles`, `sellers`, `goals`, `sales_daily` e `recognitions`, o bucket `seller-photos`, funções auxiliares e políticas RLS. Usuários autenticados podem consultar os dados operacionais; somente administradores ativos podem alterar esses dados. As fotos são públicas para leitura e restritas para gravação a administradores.
 
 **Importante:** a execução da migração SQL no projeto Supabase é necessária para que a importação grave os campos `gross_revenue` e `refund_amount`. O build do frontend não executa essa migração no banco remoto.
+
+
+## Metas semanais por setor
+
+A equipe pode ser vinculada a um dos setores: **Salão**, **Digital** ou **Checkout**. O vínculo é configurável no cadastro e também pode ser alterado na lista de colaboradoras.
+
+- **Salão:** meta semanal coletiva em quantidade de vendas.
+- **Digital:** meta semanal coletiva em quantidade de conversões.
+- **Checkout:** meta semanal coletiva em faturamento (R$).
+- O painel percentual apresenta os filtros **Semanal** e **Mensal**.
+- O percentual de cada colaborador é calculado sobre sua cota individual: meta semanal do setor dividida pelo número de colaboradores ativos e habilitados para vendas naquele setor.
+- O progresso coletivo do setor é calculado sobre a meta integral do setor.
+- O progresso não é limitado a 100%: resultados de 120%, 130% ou mais são exibidos integralmente. A barra visual permanece preenchida em 100% para não ultrapassar o cartão, enquanto o percentual numérico mostra a superação.
+- No filtro mensal, as metas semanais cujas semanas cruzam o mês são somadas, e os resultados são apurados apenas dentro das datas do mês.
+- A tela de valores continua usando os indicadores monetários e os filtros próprios. O ranking de boas ações permanece histórico e independente dos filtros de vendas.
+
+### Migração do Supabase
+
+Execute no SQL Editor o arquivo `supabase/migrations/20261112000000_sector_goals.sql` para adicionar o campo `sellers.sector`, a tabela `sector_goals` e suas políticas RLS. A migração preserva os dados existentes. Depois, atribua um setor a cada colaborador participante de vendas e cadastre as metas semanais no menu **Administração → Metas**.
