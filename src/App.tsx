@@ -16,7 +16,10 @@ type Seller = { id:string; full_name:string; email:string|null; photo_url:string
 type SectorGoal = { id:string; sector:Sector; week_start:string; target:number }
 type Sale = { id:string; seller_id:string; sale_date:string; revenue:number; sales_count:number; gross_revenue?:number; refund_amount?:number }
 type Recognition = { id:string; seller_id:string; stars:number; kind:string; title:string; description:string; recognized_at:string }
-type Goal = { month:string; monthly_target:number; daily_target:number }
+type Goal = { month:string; monthly_target:number; daily_target:number; bonus_meta?:number; bonus_super?:number; bonus_diamante?:number; growth_salao?:number|null; growth_digital?:number|null; growth_checkout?:number|null }
+// Semana do plano de meta comercial (datas próprias, ex.: 01 a 08).
+type GoalWeek = { id?:string; month:string; week_number:number; start_date:string; end_date:string; store_target:number; salao_revenue_target:number; digital_revenue_target:number; salao_sales_target:number; digital_conversions_target:number; checkout_ticket_target:number; salao_meta:number; salao_super:number; salao_diamante:number; digital_meta:number; digital_super:number; digital_diamante:number; checkout_meta:number; checkout_super:number; checkout_diamante:number }
+type Tier = 'meta'|'super'|'diamante'
 type Profile = { id:string; full_name:string; role:'admin'|'viewer'; active:boolean }
 type Period = 'day'|'week'|'month'|'range'
 type ImportRow = { data:string; vendedora:string; valor:number|string; vendas:number|string; email?:string }
@@ -120,13 +123,13 @@ function useSession(){
  return {user,profile,loading,profileError}
 }
 function useData(){
- const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[sectorGoals,setSectorGoals]=useState<SectorGoal[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date())
+ const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[sectorGoals,setSectorGoals]=useState<SectorGoal[]>([]),[goalWeeks,setGoalWeeks]=useState<GoalWeek[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date())
  const load=useCallback(async()=>{
   const client=supabase
   if(!client)return
   setBusy(true);setError('')
   try{
-   const fetchAll=async(table:'sellers'|'sales_daily'|'recognitions'|'goals'|'sector_goals',column:string,ascending=true)=>{
+   const fetchAll=async(table:'sellers'|'sales_daily'|'recognitions'|'goals'|'sector_goals'|'goal_weeks',column:string,ascending=true)=>{
     const all:Record<string,unknown>[]=[]
     const pageSize=1000
     for(let offset=0;;offset+=pageSize){
@@ -137,14 +140,16 @@ function useData(){
     }
     return all
    }
-   const [a,b,c,d,e]=await Promise.all([
+   const [a,b,c,d,e,f]=await Promise.all([
     fetchAll('sellers','full_name'),
     fetchAll('sales_daily','sale_date',false),
     fetchAll('recognitions','recognized_at',false),
     fetchAll('goals','month',false),
-    fetchAll('sector_goals','week_start',false).catch(()=>[])
+    fetchAll('sector_goals','week_start',false).catch(()=>[]),
+    // Antes da migração do plano a tabela não existe: as telas usam as metas semanais antigas.
+    fetchAll('goal_weeks','start_date').catch(()=>[])
    ])
-   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setSectorGoals(e as unknown as SectorGoal[]);setUpdatedAt(new Date())
+   setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setSectorGoals(e as unknown as SectorGoal[]);setGoalWeeks((f as unknown as GoalWeek[]).map(w=>normalizeWeek(w)));setUpdatedAt(new Date())
   }catch(e){
    setError(e instanceof Error?e.message:'Não foi possível carregar os dados do Supabase.')
   }finally{setBusy(false)}
@@ -166,7 +171,7 @@ function useData(){
   document.addEventListener('visibilitychange',refresh)
   return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh)}
  },[load])
- return {sellers,sales,recognitions,goals,sectorGoals,setSellers,setSales,setRecognitions,setGoals,setSectorGoals,load,busy,error,updatedAt}
+ return {sellers,sales,recognitions,goals,sectorGoals,goalWeeks,setSellers,setSales,setRecognitions,setGoals,setSectorGoals,setGoalWeeks,load,busy,error,updatedAt}
 }
 
 function Avatar({seller,size='md',index=0}:{seller:Seller;size?:'sm'|'md'|'lg'|'xl';index?:number}){
@@ -187,7 +192,7 @@ function rankRows(sellers:Seller[],sales:Sale[],period:Period,date:string,rangeE
   const rows=sales.filter(x=>x.seller_id===s.id&&x.sale_date>=start&&x.sale_date<=end)
   const revenue=rows.reduce((n,x)=>n+Number(x.revenue),0),count=rows.reduce((n,x)=>n+Number(x.sales_count),0)
   const grossRevenue=rows.reduce((n,x)=>n+Number(x.gross_revenue??Math.max(Number(x.revenue),0)),0)
-  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0,sector:s.sector,contribution:0,metricActual:0}
+  return {seller:s,revenue,count,ticket:count?grossRevenue/count:0,sector:s.sector,contribution:0,metricActual:0,quota:0,individual:null as number|null,tier:null as Tier|null}
  }).sort((a,b)=>b.revenue-a.revenue||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
 }
 const periodTag=(p:Period)=>p==='day'?'Hoje':p==='week'?'Esta semana':p==='range'?'Período selecionado':'Este mês'
@@ -196,10 +201,44 @@ const sectors:Sector[]=['salao','digital','checkout']
 const sectorLabel=(s:Sector)=>s==='salao'?'SALÃO':s==='digital'?'DIGITAL':'CHECKOUT'
 const sectorName=(s:Sector)=>s==='salao'?'Salão':s==='digital'?'Digital':'Checkout'
 const sectorUnit=(s:Sector)=>s==='salao'?'vendas':s==='digital'?'conversões':'faturamento'
-const weekStart=(iso:string)=>dateRange('week',iso)[0]
 // Dias em comum entre a semana (segunda a domingo) e o período [início, fim]. Cada dia vale 1/7 da meta semanal.
 const weekOverlapDays=(weekStartIso:string,[start,end]:[string,string])=>{const day=86400000,ws=new Date(weekStartIso+'T12:00:00').getTime(),from=Math.max(ws,new Date(start+'T12:00:00').getTime()),to=Math.min(ws+6*day,new Date(end+'T12:00:00').getTime());return to<from?0:Math.round((to-from)/day)+1}
 const sectorActual=(sector:Sector,sales:Sale[],sellerIds:string[],start:string,end:string)=>sales.filter(x=>sellerIds.includes(x.seller_id)&&x.sale_date>=start&&x.sale_date<=end).reduce((sum,x)=>sum+(sector==='checkout'?Number(x.revenue):Number(x.sales_count)),0)
+// ---------- Plano de meta comercial ----------
+const DAY_MS=86400000
+const dayMs=(iso:string)=>new Date(iso+'T12:00:00').getTime()
+const spanDays=(start:string,end:string)=>Math.round((dayMs(end)-dayMs(start))/DAY_MS)+1
+const overlapDays=(aStart:string,aEnd:string,bStart:string,bEnd:string)=>{const from=Math.max(dayMs(aStart),dayMs(bStart)),to=Math.min(dayMs(aEnd),dayMs(bEnd));return to<from?0:Math.round((to-from)/DAY_MS)+1}
+const weekNumberFields=['store_target','salao_revenue_target','digital_revenue_target','salao_sales_target','digital_conversions_target','checkout_ticket_target','salao_meta','salao_super','salao_diamante','digital_meta','digital_super','digital_diamante','checkout_meta','checkout_super','checkout_diamante'] as const
+const normalizeWeek=(w:GoalWeek):GoalWeek=>{const out={...w,week_number:Number(w.week_number)} as GoalWeek;for(const k of weekNumberFields)(out as Record<string,unknown>)[k]=Number(w[k]||0);return out}
+const planFieldGroups:[string,[keyof GoalWeek,string][]][]=[
+ ['Loja (R$)',[['store_target','Meta da loja'],['salao_revenue_target','Venda salão'],['digital_revenue_target','Venda digital']]],
+ ['Metas dos setores',[['salao_sales_target','Salão · qtd. de vendas'],['digital_conversions_target','Digital · conversões'],['checkout_ticket_target','Checkout · ticket médio (R$)']]],
+ ['Vendedoras do salão · R$ por pessoa',[['salao_meta','Meta'],['salao_super','Super'],['salao_diamante','Diamante']]],
+ ['Vendedoras digital · R$ por pessoa',[['digital_meta','Meta'],['digital_super','Super'],['digital_diamante','Diamante']]],
+ ['Checkout · R$ por pessoa',[['checkout_meta','Meta'],['checkout_super','Super'],['checkout_diamante','Diamante']]],
+]
+const tierLabel=(t:Tier)=>t==='diamante'?'Diamante':t==='super'?'Super':'Meta'
+const tierOf=(value:number,t:{meta:number;super:number;diamante:number}):Tier|null=>t.meta<=0?null:value>=t.diamante&&t.diamante>0?'diamante':value>=t.super&&t.super>0?'super':value>=t.meta?'meta':null
+// Metas do plano para um período: cada semana entra proporcionalmente aos dias em comum com o período.
+// Ticket médio do Checkout não se soma: vira a média das semanas, ponderada pelos dias.
+function planForWindow(weeks:GoalWeek[],start:string,end:string){
+ const individual:Record<Sector,{meta:number;super:number;diamante:number}>={salao:{meta:0,super:0,diamante:0},digital:{meta:0,super:0,diamante:0},checkout:{meta:0,super:0,diamante:0}}
+ let covered=false,salao=0,digital=0,ticketSum=0,ticketDays=0,store=0
+ for(const w of weeks){
+  const days=overlapDays(w.start_date,w.end_date,start,end);if(!days)continue
+  covered=true
+  const f=days/spanDays(w.start_date,w.end_date)
+  store+=w.store_target*f;salao+=w.salao_sales_target*f;digital+=w.digital_conversions_target*f
+  if(w.checkout_ticket_target>0){ticketSum+=w.checkout_ticket_target*days;ticketDays+=days}
+  for(const sec of sectors){individual[sec].meta+=w[`${sec}_meta`]*f;individual[sec].super+=w[`${sec}_super`]*f;individual[sec].diamante+=w[`${sec}_diamante`]*f}
+ }
+ return {covered,store,individual,sector:{salao,digital,checkout:ticketDays?ticketSum/ticketDays:0} as Record<Sector,number>}
+}
+const salesIn=(sales:Sale[],ids:string[],start:string,end:string)=>sales.filter(x=>ids.includes(x.seller_id)&&x.sale_date>=start&&x.sale_date<=end)
+const sumRevenue=(rows:Sale[])=>rows.reduce((n,x)=>n+Number(x.revenue),0)
+const sumCount=(rows:Sale[])=>rows.reduce((n,x)=>n+Number(x.sales_count),0)
+const ticketOf=(rows:Sale[])=>{const c=sumCount(rows);return c?rows.reduce((n,x)=>n+Number(x.gross_revenue??Math.max(Number(x.revenue),0)),0)/c:0}
 const sellerColor=(id:string)=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return ['#B07A5A','#6E8CA6','#7E9A86','#8A7FB0','#5E8F9E','#A0708A','#7A8F5E','#9A7A50'][h%8]}
 const clock=(d:Date)=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
 const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','')
@@ -229,17 +268,31 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const rangeEnd=endDate>=date?endDate:date
  const rows=useMemo(()=>rankRows(data.sellers,data.sales,period,date,rangeEnd),[data.sellers,data.sales,period,date,rangeEnd])
  const sectorWindow:[string,string]=period==='range'?[date,rangeEnd]:dateRange(period,date)
+ // Plano de meta comercial do período (semanas com datas próprias). Sem plano cadastrado, vale a meta semanal antiga por setor.
+ const plan=useMemo(()=>planForWindow(data.goalWeeks,sectorWindow[0],sectorWindow[1]),[data.goalWeeks,sectorWindow[0],sectorWindow[1]])
  const sectorStats=useMemo(()=>sectors.map(sector=>{
   const members=data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector===sector)
-  const target=data.sectorGoals.filter(g=>g.sector===sector).reduce((sum,g)=>sum+Number(g.target)*weekOverlapDays(g.week_start,sectorWindow)/7,0)
-  const actual=sectorActual(sector,data.sales,members.map(s=>s.id),sectorWindow[0],sectorWindow[1])
-  return {sector,members,target,actual,percent:target>0?actual/target*100:0,individualTarget:members.length?target/members.length:0}
- }),[data.sellers,data.sales,data.sectorGoals,sectorWindow[0],sectorWindow[1]])
+  const ids=members.map(s=>s.id),inWindow=salesIn(data.sales,ids,sectorWindow[0],sectorWindow[1])
+  const target=plan.covered?plan.sector[sector]:data.sectorGoals.filter(g=>g.sector===sector).reduce((sum,g)=>sum+Number(g.target)*weekOverlapDays(g.week_start,sectorWindow)/7,0)
+  // Com o plano, o Checkout é medido pelo ticket médio; sem o plano, pelo faturamento (regra antiga).
+  const actual=plan.covered?(sector==='checkout'?ticketOf(inWindow):sumCount(inWindow)):sectorActual(sector,data.sales,ids,sectorWindow[0],sectorWindow[1])
+  const ticketMode=plan.covered&&sector==='checkout'
+  return {sector,members,target,actual,ticketMode,percent:target>0?actual/target*100:0,quotaTarget:ticketMode?target:members.length?target/members.length:0}
+ }),[data.sellers,data.sales,data.sectorGoals,plan,sectorWindow[0],sectorWindow[1]])
  const percentRows=useMemo(()=>{
-  const bySeller=new Map<string,{sector:Sector;percent:number;actual:number}>()
-  for(const st of sectorStats)for(const seller of st.members){const actual=sectorActual(st.sector,data.sales,[seller.id],sectorWindow[0],sectorWindow[1]);bySeller.set(seller.id,{sector:st.sector,actual,percent:st.individualTarget>0?actual/st.individualTarget*100:0})}
-  return rows.filter(r=>bySeller.has(r.seller.id)).map(r=>{const x=bySeller.get(r.seller.id)!;return {...r,contribution:x.percent,sector:x.sector,metricActual:x.actual}}).sort((a,b)=>b.contribution-a.contribution||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
- },[rows,sectorStats,data.sales,sectorWindow[0],sectorWindow[1]])
+  const bySector=new Map<string,typeof sectorStats[number]>()
+  for(const st of sectorStats)for(const seller of st.members)bySector.set(seller.id,st)
+  return rows.filter(r=>bySector.has(r.seller.id)).map(r=>{
+   const st=bySector.get(r.seller.id)!,own=salesIn(data.sales,[r.seller.id],sectorWindow[0],sectorWindow[1])
+   const metricActual=st.ticketMode?ticketOf(own):plan.covered?sumCount(own):sectorActual(st.sector,data.sales,[r.seller.id],sectorWindow[0],sectorWindow[1])
+   const quota=st.quotaTarget>0?metricActual/st.quotaTarget*100:0
+   const goal=plan.covered?plan.individual[st.sector]:null
+   const individual=goal&&goal.meta>0?sumRevenue(own)/goal.meta*100:null
+   const tier=goal?tierOf(sumRevenue(own),goal):null
+   return {...r,sector:st.sector,metricActual,quota,individual,tier,contribution:individual??quota}
+  }).sort((a,b)=>b.contribution-a.contribution||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
+ },[rows,sectorStats,plan,data.sales,sectorWindow[0],sectorWindow[1]])
+ const hasIndividual=percent&&percentRows.some(r=>r.individual!==null)
  const displayRows=percent?percentRows:rows
  const withoutSector=rows.length-percentRows.length
  const monthRevenue=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).reduce((n,r)=>n+r.revenue,0),[data.sellers,data.sales,date])
@@ -288,7 +341,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-goal-track" role="progressbar" aria-label="Progresso da meta mensal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
    </div>
    {percent?<div className="tv-metrics">{sectorStats.map(st=><div className={st.percent>=100?'tv-metric tv-sector is-done':'tv-metric tv-sector'} key={st.sector}>
-    <span><b>{sectorName(st.sector)}</b> · {sectorUnit(st.sector)}</span>
+    <span><b>{sectorName(st.sector)}</b> · {st.ticketMode?'ticket médio':sectorUnit(st.sector)}</span>
     <strong>{pct(st.percent,1)}</strong>
     <div className="tv-sector-track" role="progressbar" aria-label={'Meta do setor '+sectorName(st.sector)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(100,st.percent))}><i style={{width:bar(st.percent)}}/></div>
     <small>{st.target<=0?'Meta não cadastrada':st.percent>=100?'Superada em '+pct(st.percent-100,1):'Faltam '+pct(100-st.percent,1)} · {st.members.length} {st.members.length===1?'pessoa':'pessoas'}</small>
@@ -305,12 +358,12 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span><small>{first.count} {first.count===1?'venda':'vendas'}</small>
+      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{first.count} {first.count===1?'venda':'vendas'}</small>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
+       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}
@@ -320,17 +373,21 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-panel-head"><h2>Ranking de vendas</h2><span>{percent?<>{periodCount} {periodCount===1?'venda':'vendas'} · {displayRows.filter(r=>r.count>0).length} de {displayRows.length} contribuindo{withoutSector>0&&<> · {withoutSector} sem setor</>}</>:<>{displayRows.length} {displayRows.length===1?'colaboradora':'colaboradoras'}</>}</span></div>
     <table>
      <thead>{percent
-      ?<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">% da meta individual</th><th scope="col">Vendas</th></tr>
+      ?(hasIndividual
+       ?<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">% meta individual</th><th scope="col">% cota setor</th><th scope="col">Vendas</th></tr>
+       :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">% da cota do setor</th><th scope="col">Vendas</th></tr>)
       :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Valor vendido</th><th scope="col">Vendas</th><th scope="col">Ticket médio</th></tr>}</thead>
      <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=displayRows.length>3&&i>=displayRows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
-      <td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{percent&&r.sector&&<span className="tv-sector-tag">{sectorName(r.sector)}</span>}{i===0&&(percent?r.contribution:r.revenue)>0&&<span className="tv-leader">Líder</span>}</span></td>
+      <td>{percent
+       ?<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-text"><span className="tv-seller-name">{r.seller.full_name}</span>{r.sector&&<small>{sectorName(r.sector)}{r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</small>}</span></span>
+       :<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&r.revenue>0&&<span className="tv-leader">Líder</span>}</span>}</td>
       {percent
-       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?r.contribution/Math.max(first.contribution,0.0001)*100:0)}}/></span><strong>{pct(r.contribution)}</strong></span></td><td className="tv-num tv-muted">{r.count}</td></>
+       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(r.contribution)}}/></span><strong>{pct(r.contribution,1)}</strong></span></td>{hasIndividual&&<td className="tv-num tv-muted">{pct(r.quota,1)}</td>}<td className="tv-num tv-muted">{r.count}</td></>
        :<><td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td></>}
      </tr>})}</tbody>
     </table>
-    {displayRows.length===0&&<p className="tv-empty">{percent?'Cadastre os setores das colaboradoras e as metas semanais no admin.':emptySales}</p>}
+    {displayRows.length===0&&<p className="tv-empty">{percent?'Defina o setor das colaboradoras e cadastre o plano de metas no admin.':emptySales}</p>}
    </div>
 
    <div className="tv-panel tv-culture">
@@ -372,10 +429,49 @@ function Admin(){
  const data=useData(),nav=useNavigate()
  const [tab,setTab]=useState('overview'),[file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<ImportRow[]>([]),[parseError,setParseError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false)
  const [sellerName,setSellerName]=useState(''),[sellerEmail,setSellerEmail]=useState(''),[sellerCanSell,setSellerCanSell]=useState(true),[sellerSector,setSellerSector]=useState<Sector>('salao')
- const [goal,setGoal]=useState(defaultGoal),[sectorGoal,setSectorGoal]=useState<{sector:Sector;week_start:string;target:number}>({sector:'salao',week_start:weekStart(today()),target:375})
+ const [goal,setGoal]=useState(defaultGoal)
  const [recSeller,setRecSeller]=useState(''),[recTitle,setRecTitle]=useState(''),[recDescription,setRecDescription]=useState(''),[recStars,setRecStars]=useState(1),[recKind,setRecKind]=useState('boas_praticas')
  const [photoSeller,setPhotoSeller]=useState('')
  useEffect(()=>{const existing=data.goals.find(g=>g.month===goal.month);if(existing)setGoal(existing)},[data.goals,goal.month])
+ const [planWeeks,setPlanWeeks]=useState<GoalWeek[]>([]),[planSaving,setPlanSaving]=useState(false)
+ useEffect(()=>{setPlanWeeks(data.goalWeeks.filter(w=>w.month===goal.month).sort((a,b)=>a.week_number-b.week_number))},[data.goalWeeks,goal.month])
+ const monthWeeks=useMemo(()=>data.goalWeeks.filter(w=>w.month===goal.month).sort((a,b)=>a.week_number-b.week_number),[data.goalWeeks,goal.month])
+ // Bonificação por semana: nível alcançado pelo faturamento da pessoa nas datas da semana do plano.
+ const bonusRows=useMemo(()=>{
+  const value=(t:Tier)=>Number(t==='diamante'?goal.bonus_diamante??250:t==='super'?goal.bonus_super??140:goal.bonus_meta??70)
+  return data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector).map(s=>{
+   const sec=s.sector as Sector
+   const weeks=monthWeeks.map(w=>{const revenue=sumRevenue(salesIn(data.sales,[s.id],w.start_date,w.end_date));const tier=tierOf(revenue,{meta:w[`${sec}_meta`],super:w[`${sec}_super`],diamante:w[`${sec}_diamante`]});return {open:w.end_date>=today(),future:w.start_date>today(),revenue,tier,bonus:tier?value(tier):0}})
+   return {seller:s,sector:sec,weeks,total:weeks.reduce((n,w)=>n+(w.open?0:w.bonus),0)}
+  }).sort((a,b)=>b.total-a.total||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
+ },[data.sellers,data.sales,monthWeeks,goal.bonus_meta,goal.bonus_super,goal.bonus_diamante])
+ function newPlanWeek(list:GoalWeek[]):GoalWeek{
+  const monthEnd=dateRange('month',goal.month)[1],prev=list[list.length-1]
+  const start=prev?toISODate(new Date(dayMs(prev.end_date)+DAY_MS)):goal.month
+  const end=toISODate(new Date(dayMs(start)+6*DAY_MS))
+  const week={month:goal.month,week_number:list.length+1,start_date:start,end_date:start<=monthEnd&&end>monthEnd?monthEnd:end} as GoalWeek
+  for(const k of weekNumberFields)(week as Record<string,unknown>)[k]=prev?prev[k]:0
+  return week
+ }
+ const setWeekField=(i:number,field:keyof GoalWeek,value:string)=>setPlanWeeks(list=>list.map((w,j)=>j===i?{...w,[field]:field==='start_date'||field==='end_date'?value:Number(value)}:w))
+ async function savePlan(){
+  if(!supabase)return
+  const weeks=planWeeks.map((w,i)=>({...w,week_number:i+1,month:goal.month}))
+  for(const [i,w] of weeks.entries()){
+   if(!w.start_date||!w.end_date||w.end_date<w.start_date){setParseError('Semana '+(i+1)+': a data final precisa ser igual ou posterior à inicial.');return}
+   if(i>0&&w.start_date<=weeks[i-1].end_date){setParseError('Semana '+(i+1)+': começa antes do fim da semana '+i+'. As semanas não podem se sobrepor.');return}
+  }
+  setPlanSaving(true);setParseError('');setMessage('')
+  try{
+   // Regrava o plano do mês inteiro: apaga as semanas do mês e insere a versão editada.
+   const {error:delError}=await supabase.from('goal_weeks').delete().eq('month',goal.month)
+   if(delError)throw delError
+   if(weeks.length){const {error}=await supabase.from('goal_weeks').insert(weeks.map(({id:_id,...w})=>w));if(error)throw error}
+   setMessage('Plano de metas de '+monthLabel(goal.month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.'))
+   await data.load()
+  }catch(e){setParseError((e instanceof Error?e.message:'Falha ao salvar o plano.')+' Se a tabela goal_weeks não existir, execute a migração supabase/migrations/20261112020000_goal_plan.sql.')}
+  finally{setPlanSaving(false)}
+ }
  async function logout(){await supabase?.auth.signOut();nav('/admin/login')}
  function parseFile(f:File){
   setFile(f);setMessage('');setParseError('');setPreview([])
@@ -451,8 +547,13 @@ function Admin(){
  async function addSeller(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('sellers').insert({full_name:sellerName,email:sellerEmail||null,can_sell:sellerCanSell,sector:sellerSector});if(error)setMessage(error.message);else{setSellerName('');setSellerEmail('');setSellerCanSell(true);setSellerSector('salao');setMessage('Colaboradora cadastrada com setor vinculado.');await data.load()}}
  async function toggleSellerSales(seller:Seller){if(!supabase)return;const next=seller.can_sell===false;const {error}=await supabase.from('sellers').update({can_sell:next}).eq('id',seller.id);if(error)setMessage(error.message);else{setMessage(next?'Colaboradora vinculada ao ranking de vendas.':'Colaboradora removida do ranking de vendas; continuará no ranking de boas ações.');await data.load()}}
  async function updateSellerSector(seller:Seller,sector:Sector){if(!supabase)return;const {error}=await supabase.from('sellers').update({sector}).eq('id',seller.id);if(error)setMessage(error.message);else{setMessage('Setor de '+seller.full_name+' atualizado para '+sectorLabel(sector)+'.');await data.load()}}
- async function saveGoal(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('goals').upsert(goal,{onConflict:'month'});setMessage(error?.message||'Meta mensal geral salva.');await data.load()}
- async function saveSectorGoal(e:FormEvent){e.preventDefault();if(!supabase)return;const monday=weekStart(sectorGoal.week_start);const {error}=await supabase.from('sector_goals').upsert({...sectorGoal,week_start:monday},{onConflict:'sector,week_start'});if(error)setMessage(error.message);else{setMessage('Meta semanal do '+sectorLabel(sectorGoal.sector)+' salva.');await data.load()}}
+ async function saveGoal(e:FormEvent){e.preventDefault();if(!supabase)return
+  const base={month:goal.month,monthly_target:goal.monthly_target,daily_target:goal.daily_target}
+  const full={...base,bonus_meta:goal.bonus_meta??70,bonus_super:goal.bonus_super??140,bonus_diamante:goal.bonus_diamante??250,growth_salao:goal.growth_salao??null,growth_digital:goal.growth_digital??null,growth_checkout:goal.growth_checkout??null}
+  let {error}=await supabase.from('goals').upsert(full,{onConflict:'month'})
+  if(error&&/bonus_|growth_/.test(error.message)){({error}=await supabase.from('goals').upsert(base,{onConflict:'month'}));if(!error){setMessage('Meta mensal salva. Para gravar bonificações e aumento por setor, execute a migração 20261112020000_goal_plan.sql.');await data.load();return}}
+  if(error)setParseError(error.message);else setMessage('Meta mensal salva.')
+  await data.load()}
  async function addRecognition(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('recognitions').insert({seller_id:recSeller,stars:recStars,kind:recKind,title:recTitle,description:recDescription,recognized_at:today()});setMessage(error?.message||'Reconhecimento publicado no painel.');if(!error){setRecTitle('');setRecDescription('');setRecStars(1);await data.load()}}
  async function uploadPhoto(e:FormEvent){e.preventDefault();const el=document.getElementById('seller-photo') as HTMLInputElement;const f=el.files?.[0];if(!f||!supabase||!photoSeller)return;const path=photoSeller+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9.-]/g,'_');const {error}=await supabase.storage.from('seller-photos').upload(path,f,{upsert:true});if(error){setMessage(error.message);return}const {data:pub}=supabase.storage.from('seller-photos').getPublicUrl(path);const {error:e2}=await supabase.from('sellers').update({photo_url:pub.publicUrl}).eq('id',photoSeller);setMessage(e2?.message||'Foto atualizada.');await data.load()}
  return <div className="admin-shell"><aside className="admin-sidebar"><Brand/><div className="sidebar-label">GESTÃO COMERCIAL</div><nav>{[['overview','Visão geral',LayoutDashboard],['import','Importar vendas',Upload],['sellers','Colaboradoras',Users],['goals','Metas',Target],['recognitions','Reconhecimentos',Star]] .map(([id,label,Icon])=><button key={String(id)} className={tab===id?'selected':''} onClick={()=>setTab(String(id))}>{<Icon size={18}/>} {String(label)}<ChevronRight size={14}/></button>)}</nav><div className="sidebar-bottom"><button onClick={()=>nav('/')}><Monitor size={17}/> Abrir painel TV</button><button onClick={()=>nav('/admin/percentage')}><TrendingUp size={17}/> Tela de porcentagens</button><button onClick={logout}><LogOut size={17}/> Sair</button></div></aside><main className="admin-content"><header className="admin-top"><div><span className="eyebrow">GESTÃO À VISTA / ADMINISTRAÇÃO</span><h1>{({overview:'Visão geral',import:'Importar vendas',sellers:'Colaboradoras',goals:'Metas comerciais',recognitions:'Reconhecimentos'} as Record<string,string>)[tab]}</h1></div><div className="admin-user"><span className="admin-online"/> ADMINISTRAÇÃO</div></header><DemoNotice/>{message&&<div className="success-message"><CheckCircle2 size={16}/>{message}<button onClick={()=>setMessage('')}><X size={15}/></button></div>}{parseError&&<div className="error-box">{parseError}</div>}
@@ -460,7 +561,30 @@ function Admin(){
  {tab==='overview'&&<><div className="admin-cards"><Metric icon={<Users/>} label="COLABORADORAS ATIVAS" value={String(data.sellers.filter(s=>s.active).length)} detail="Equipe cadastrada" tone="blue"/><Metric icon={<TrendingUp/>} label="FATURAMENTO DO MÊS" value={money(data.sales.filter(s=>s.sale_date.startsWith(today().slice(0,7))).reduce((n,s)=>n+Number(s.revenue),0))} detail="Vendas registradas" tone="green"/><Metric icon={<ShoppingBag/>} label="VENDAS NO MÊS" value={String(data.sales.filter(s=>s.sale_date.startsWith(today().slice(0,7))).reduce((n,s)=>n+Number(s.sales_count),0))} detail="Atendimentos convertidos" tone="gold"/><Metric icon={<Star/>} label="ESTRELAS CONCEDIDAS" value={String(data.recognitions.reduce((n,r)=>n+r.stars,0))} detail="Reconhecimentos acumulados" tone="purple"/></div><div className="admin-panel"><div className="panel-head"><div><h2>Desempenho do mês</h2><p>Ranking atualizado com os registros importados.</p></div><button className="btn secondary" onClick={()=>data.load()}><RefreshCw size={15}/> Atualizar dados</button></div><div className="table-wrap"><table><thead><tr><th>POSIÇÃO</th><th>VENDEDORA</th><th>FATURAMENTO</th><th>VENDAS</th><th>TICKET MÉDIO</th></tr></thead><tbody>{rankRows(data.sellers,data.sales,'month',today()).map((r,i)=><tr key={r.seller.id}><td><b className="rank-number">{i+1}</b></td><td>{r.seller.full_name}</td><td className="money-cell">{exactMoney(r.revenue)}</td><td>{r.count}</td><td>{exactMoney(r.ticket)}</td></tr>)}</tbody></table></div></div><div className="admin-shortcuts"><button onClick={()=>setTab('import')}><Upload/><strong>Importar vendas</strong><span>Atualize os dados diários</span><ArrowUpRight/></button><button onClick={()=>setTab('recognitions')}><Star/><strong>Reconhecer equipe</strong><span>Valorize boas práticas</span><ArrowUpRight/></button><button onClick={()=>setTab('goals')}><Target/><strong>Definir metas</strong><span>Configure o objetivo do mês</span><ArrowUpRight/></button></div></>}
  {tab==='import'&&<div className="admin-panel"><h2>Importação diária de vendas</h2><p>Envie uma planilha Excel no modelo Diária Yup ou um arquivo CSV. Os dados serão conferidos antes de gravar.</p><label className="upload-zone"><input type="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/><Upload size={26}/><strong>{file?file.name:'Selecionar arquivo Excel ou CSV'}</strong><span>Excel (.xlsx/.xls) ou CSV · Prévia antes da confirmação</span></label><div className="format-hint"><strong>Formatos aceitos:</strong><br/>Excel: aba BASE VENDAS com Data, Vendedora, Faturamento líquido (R$) e Nº de vendas.<br/>CSV: data,vendedora,valor,vendas (e-mail opcional).<br/>Datas aceitas: AAAA-MM-DD ou DD/MM/AAAA. Valores em reais, inclusive negativos para registrar estornos. Estornos não aumentam a quantidade de vendas.</div>{preview.length>0&&<><div className="preview-head"><strong>Prévia de importação</strong><span>{preview.length} registros encontrados</span></div><div className="table-wrap"><table><thead><tr><th>DATA</th><th>VENDEDORA</th><th>FATURAMENTO</th><th>VENDAS</th></tr></thead><tbody>{preview.slice(0,10).map((r,i)=><tr key={i}><td>{r.data}</td><td>{r.vendedora}</td><td>{exactMoney(Number(r.valor))}</td><td>{r.vendas}</td></tr>)}</tbody></table></div><button className="btn primary" disabled={saving} onClick={importCsv}>{saving?'Importando...':'Confirmar importação'}<ChevronRight size={16}/></button></>}</div>}
  {tab==='sellers'&&<><div className="admin-panel"><h2>Cadastrar colaboradora</h2><form className="inline-form" onSubmit={addSeller}><label>Nome completo<input value={sellerName} onChange={e=>setSellerName(e.target.value)} required placeholder="Nome da vendedora"/></label><label>E-mail (opcional)<input type="email" value={sellerEmail} onChange={e=>setSellerEmail(e.target.value)} placeholder="email@loja.com"/></label><label>Setor<select value={sellerSector} onChange={e=>setSellerSector(e.target.value as Sector)}><option value="salao">Salão</option><option value="digital">Digital</option><option value="checkout">Checkout</option></select></label><label className="seller-sales-toggle"><input type="checkbox" checked={sellerCanSell} onChange={e=>setSellerCanSell(e.target.checked)}/> Participa das vendas (pódio e ranking)</label><button className="btn primary"><Plus size={16}/> Cadastrar</button></form></div><div className="admin-panel"><h2>Fotos do ranking</h2><p>Adicione a foto de cada colaboradora para o pódio de destaque.</p><form className="inline-form" onSubmit={uploadPhoto}><label>Colaboradora<select value={photoSeller} onChange={e=>setPhotoSeller(e.target.value)} required><option value="">Selecione</option>{data.sellers.map(s=><option key={s.id} value={s.id}>{s.full_name}</option>)}</select></label><label>Imagem<input id="seller-photo" type="file" accept="image/*" required/></label><button className="btn primary"><ImagePlus size={16}/> Enviar foto</button></form></div><div className="admin-panel"><h2>Equipe cadastrada · {data.sellers.length}</h2><div className="seller-list">{data.sellers.map((s,i)=><div className="seller-list-item" key={s.id}><Avatar seller={s} index={i}/><div><strong>{s.full_name}</strong><small>{s.email||'Sem e-mail cadastrado'}</small><small>{s.can_sell===false?'Somente boas ações':'Participa do ranking de vendas'} · Setor: {s.sector?sectorLabel(s.sector):'Não definido'}</small><select aria-label={'Setor de '+s.full_name} value={s.sector||''} onChange={e=>e.target.value&&updateSellerSector(s,e.target.value as Sector)}><option value="">Definir setor</option><option value="salao">Salão</option><option value="digital">Digital</option><option value="checkout">Checkout</option></select></div><button type="button" className={s.can_sell===false?'sales-link-off':'sales-link-on'} onClick={()=>toggleSellerSales(s)}>{s.can_sell===false?'Incluir nas vendas':'Vendedora'}</button><span className={s.active?'active-status':'inactive-status'}>{s.active?'ATIVA':'INATIVA'}</span></div>)}</div></div></>}
- {tab==='goals'&&<><div className="admin-panel narrow-panel"><h2>Metas semanais por setor</h2><p>Cadastre a meta coletiva de cada setor. No painel, a meta é proporcional aos dias do filtro: cada dia vale 1/7 da meta semanal. A data será normalizada para a segunda-feira da semana.</p><form onSubmit={saveSectorGoal} className="stack-form"><label>Setor<select value={sectorGoal.sector} onChange={e=>setSectorGoal({...sectorGoal,sector:e.target.value as Sector})}><option value="salao">Salão · quantidade de vendas</option><option value="digital">Digital · conversões</option><option value="checkout">Checkout · faturamento em reais</option></select></label><label>Data da semana<input type="date" value={sectorGoal.week_start} onChange={e=>setSectorGoal({...sectorGoal,week_start:e.target.value})} required/></label><label>Meta semanal {sectorGoal.sector==='checkout'?'(R$)':'(quantidade)'}<input type="number" min="0" step={sectorGoal.sector==='checkout'?'0.01':'1'} value={sectorGoal.target} onChange={e=>setSectorGoal({...sectorGoal,target:Number(e.target.value)})} required/></label><button className="btn primary">Salvar meta semanal <ChevronRight size={16}/></button></form><div className="seller-list">{data.sectorGoals.slice().sort((a,b)=>b.week_start.localeCompare(a.week_start)).map(g=><div className="seller-list-item" key={g.sector+g.week_start}><div className="goal-list-text"><strong>{sectorLabel(g.sector)} · semana de {new Date(g.week_start+'T12:00:00').toLocaleDateString('pt-BR')}</strong><small>{g.sector==='checkout'?exactMoney(g.target):g.target.toLocaleString('pt-BR')+' '+(g.sector==='salao'?'vendas':'conversões')}</small></div></div>)}</div></div><div className="admin-panel narrow-panel"><h2>Configuração da meta mensal geral</h2><p>Informe o objetivo coletivo para o mês e o valor de referência por dia.</p><form onSubmit={saveGoal} className="stack-form"><label>Mês de referência<input type="month" value={goal.month.slice(0,7)} onChange={e=>{const month=e.target.value+'-01';const existing=data.goals.find(g=>g.month===month);setGoal(existing||{month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target})}} required/></label><label>Meta mensal (R$)<input type="number" min="0" step="0.01" value={goal.monthly_target} onChange={e=>setGoal({...goal,monthly_target:Number(e.target.value)})} required/></label><label>Meta diária (R$)<input type="number" min="0" step="0.01" value={goal.daily_target} onChange={e=>setGoal({...goal,daily_target:Number(e.target.value)})} required/></label><button className="btn primary">Salvar metas <ChevronRight size={16}/></button></form></div></>}
+ {tab==='goals'&&<>
+ <div className="admin-panel">
+  <div className="panel-head"><div><h2>Plano de meta comercial · {monthLabel(goal.month)}</h2><p>Cada semana tem datas próprias, como no plano impresso. A TV calcula as metas do filtro escolhido somando os dias de cada semana que caem no período.</p></div>
+   <label className="plan-month">Mês<input type="month" value={goal.month.slice(0,7)} onChange={e=>{const month=e.target.value+'-01';const existing=data.goals.find(g=>g.month===month);setGoal(existing||{month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target})}}/></label></div>
+  {planWeeks.length===0&&<p className="plan-empty">Nenhuma semana cadastrada para este mês. Adicione a primeira semana do plano.</p>}
+  {planWeeks.map((w,i)=><fieldset className="plan-week" key={i}>
+   <legend>{i+1}ª semana</legend>
+   <div className="plan-week-dates"><label>Início<input type="date" value={w.start_date} onChange={e=>setWeekField(i,'start_date',e.target.value)} required/></label><label>Fim<input type="date" value={w.end_date} onChange={e=>setWeekField(i,'end_date',e.target.value)} required/></label><span>{w.start_date&&w.end_date&&w.end_date>=w.start_date?spanDays(w.start_date,w.end_date)+' dias':''}</span><button type="button" className="btn secondary" onClick={()=>setPlanWeeks(list=>list.filter((_,j)=>j!==i))}><X size={14}/> Remover semana</button></div>
+   {planFieldGroups.map(([title,fields])=><div className="plan-group" key={title}><strong>{title}</strong><div className="plan-fields">{fields.map(([field,label])=><label key={field}>{label}<input type="number" min="0" step="0.01" value={w[field]} onChange={e=>setWeekField(i,field,e.target.value)}/></label>)}</div></div>)}
+  </fieldset>)}
+  <div className="plan-actions"><button type="button" className="btn secondary" onClick={()=>setPlanWeeks(list=>[...list,newPlanWeek(list)])}><Plus size={16}/> Adicionar semana</button><button type="button" className="btn primary" disabled={planSaving} onClick={savePlan}>{planSaving?'Salvando...':'Salvar plano'} <ChevronRight size={16}/></button>{planWeeks.length>0&&<span className="plan-total">Meta da loja somada: {money(planWeeks.reduce((n,w)=>n+Number(w.store_target||0),0))}</span>}</div>
+ </div>
+ <div className="admin-panel">
+  <h2>Bonificações · {monthLabel(goal.month)}</h2>
+  <p>Nível alcançado por semana com o faturamento de cada pessoa: Meta {money(Number(goal.bonus_meta??70))}, Super {money(Number(goal.bonus_super??140))} e Diamante {money(Number(goal.bonus_diamante??250))}. Semanas em andamento ainda não entram no total.</p>
+  {monthWeeks.length===0?<p className="plan-empty">Cadastre e salve o plano do mês para ver as bonificações.</p>:<div className="table-wrap"><table className="bonus-table"><thead><tr><th>Colaboradora</th><th>Setor</th>{monthWeeks.map(w=><th key={w.week_number}>{w.week_number}ª sem.<br/><small>{new Date(w.start_date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit'})} a {new Date(w.end_date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</small></th>)}<th>Total</th></tr></thead><tbody>{bonusRows.map(r=><tr key={r.seller.id}><td>{r.seller.full_name}</td><td>{sectorName(r.sector)}</td>{r.weeks.map((w,i)=><td key={i} className={w.future?'bonus-future':''}>{w.future?'—':w.tier?<><span className={'bonus-tier '+w.tier}>{tierLabel(w.tier)}</span> {money(w.bonus)}{w.open&&<small> parcial</small>}</>:<span className="bonus-none">{w.open?'em andamento':'sem nível'}</span>}</td>)}<td className="money-cell">{money(r.total)}</td></tr>)}</tbody></table></div>}
+ </div>
+ <div className="admin-panel narrow-panel"><h2>Meta mensal, bonificações e aumento por setor</h2><p>Valores do mês selecionado acima.</p><form onSubmit={saveGoal} className="stack-form">
+  <label>Meta mensal da loja (R$)<input type="number" min="0" step="0.01" value={goal.monthly_target} onChange={e=>setGoal({...goal,monthly_target:Number(e.target.value)})} required/></label>
+  <label>Meta diária (R$)<input type="number" min="0" step="0.01" value={goal.daily_target} onChange={e=>setGoal({...goal,daily_target:Number(e.target.value)})} required/></label>
+  <div className="plan-fields"><label>Bônus Meta (R$)<input type="number" min="0" step="0.01" value={goal.bonus_meta??70} onChange={e=>setGoal({...goal,bonus_meta:Number(e.target.value)})}/></label><label>Bônus Super (R$)<input type="number" min="0" step="0.01" value={goal.bonus_super??140} onChange={e=>setGoal({...goal,bonus_super:Number(e.target.value)})}/></label><label>Bônus Diamante (R$)<input type="number" min="0" step="0.01" value={goal.bonus_diamante??250} onChange={e=>setGoal({...goal,bonus_diamante:Number(e.target.value)})}/></label></div>
+  <div className="plan-fields"><label>Aumento Salão (%)<input type="number" step="0.01" value={goal.growth_salao??''} onChange={e=>setGoal({...goal,growth_salao:e.target.value===''?null:Number(e.target.value)})}/></label><label>Aumento Digital (%)<input type="number" step="0.01" value={goal.growth_digital??''} onChange={e=>setGoal({...goal,growth_digital:e.target.value===''?null:Number(e.target.value)})}/></label><label>Aumento Checkout (%)<input type="number" step="0.01" value={goal.growth_checkout??''} onChange={e=>setGoal({...goal,growth_checkout:e.target.value===''?null:Number(e.target.value)})}/></label></div>
+  <button className="btn primary">Salvar meta do mês <ChevronRight size={16}/></button></form></div>
+</>}
  {tab==='recognitions'&&<><div className="admin-panel narrow-panel"><h2>Registrar reconhecimento</h2><p>As estrelas reconhecem boas práticas e ideias implementadas. Elas não alteram a classificação de vendas.</p><form className="stack-form" onSubmit={addRecognition}><label>Colaboradora<select required value={recSeller} onChange={e=>setRecSeller(e.target.value)}><option value="">Selecione</option>{data.sellers.map(s=><option key={s.id} value={s.id}>{s.full_name}</option>)}</select></label><label>Categoria<select value={recKind} onChange={e=>setRecKind(e.target.value)}><option value="boas_praticas">Boa prática</option><option value="ideia_implementada">Ideia implementada</option></select></label><label>Título<input value={recTitle} onChange={e=>setRecTitle(e.target.value)} required placeholder="Ex.: Organização do estoque"/></label><label>O que foi feito?<textarea rows={4} value={recDescription} onChange={e=>setRecDescription(e.target.value)} required placeholder="Descreva a contribuição da colaboradora..."/></label><label>Estrelas concedidas<div className="star-picker">{[1,2,3,4,5].map(n=><button type="button" key={n} onClick={()=>setRecStars(n)} className={n<=recStars?'chosen':''}><Star fill={n<=recStars?'currentColor':'none'}/></button>)}</div></label><button className="btn primary">Publicar reconhecimento <Star size={16}/></button></form></div><div className="admin-panel"><h2>Reconhecimentos registrados</h2>{data.recognitions.map(r=><div className="recognition-row" key={r.id}><div><strong>{r.title}</strong><p>{r.description}</p><small>{data.sellers.find(s=>s.id===r.seller_id)?.full_name||'Colaboradora'} · {r.kind==='ideia_implementada'?'Ideia implementada':'Boa prática'}</small></div><span className="stars-cell">{'★'.repeat(r.stars)}</span></div>)}</div></>}
  </main></div>
 }

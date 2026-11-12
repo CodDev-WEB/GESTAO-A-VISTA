@@ -21,3 +21,29 @@
 .seller-list-item select{border:1px solid #e1e6ea;border-radius:7px;padding:7px 9px;background:#fff;color:#435365;font-size:10px;max-width:145px}
 
 
+/* Admin › Metas: plano de meta comercial por semana e bonificações */
+.plan-month{min-width:180px;margin:0}
+.plan-month input,.plan-week input{border:1px solid #e1e5e9;border-radius:8px;padding:10px 12px;outline:none;font-size:13px;color:#243449;background:#fff;width:100%;box-sizing:border-box}
+.plan-month input:focus,.plan-week input:focus{border-color:#1d7480;box-shadow:0 0 0 3px #1d748026}
+.plan-week{border:1px solid #e3e8ec;border-radius:12px;padding:16px 18px 6px;margin:0 0 14px;background:#fbfcfd}
+.plan-week legend{font:800 14px Manrope,sans-serif;color:#172538;padding:0 6px}
+.plan-week-dates{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:6px}
+.plan-week-dates label{flex:0 1 180px;margin:0}
+.plan-week-dates span{font-size:12px;color:#556274;padding-bottom:11px}
+.plan-week-dates .btn{margin-left:auto}
+.plan-group{margin-top:12px}
+.plan-group>strong{display:block;font-size:12px;color:#1d4650;margin-bottom:6px}
+.plan-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.plan-fields label{margin:0;font-size:11px;color:#556274}
+.plan-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:6px}
+.plan-total{font-size:13px;color:#556274}
+.plan-empty{font-size:13px;color:#556274;background:#f4f6f8;border-radius:10px;padding:14px 16px}
+.bonus-table th small{font-weight:500;color:#8091a1;letter-spacing:0}
+.bonus-table td{white-space:nowrap}
+.bonus-tier{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:2px 8px}
+.bonus-tier.meta{background:#eaf8fa;color:#1d4650}
+.bonus-tier.super{background:#6dcfd9;color:#172538}
+.bonus-tier.diamante{background:#172538;color:#ffde50}
+.bonus-none,.bonus-future{color:#8a96a3;font-size:12px}
+.stack-form .plan-fields{margin-bottom:16px}
+.plan-month,.plan-week-dates label{font-size:11px;color:#556274;font-weight:800;gap:6px}
