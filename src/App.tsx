@@ -315,7 +315,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
       <td><span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&<span className="tv-leader">Líder</span>}</span></td>
       {percent
-       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?r.contribution/Math.max(first.contribution,0.0001)*100:0)}}/></span><strong>{pct(r.contribution)}</strong></span></td><td className="tv-num tv-muted">{r.count}</td></>
+       ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(first?r.contribution/Math.max(first.contribution,0.0001)*100:0)}}/></span><strong>{pct(r.contribution)}</strong></span></td><td className="tv-num tv-muted">{r.sector==='checkout'?exactMoney(r.metricActual):r.metricActual.toLocaleString('pt-BR')}</td></>
        :<><td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td></>}
      </tr>})}</tbody>
     </table>
