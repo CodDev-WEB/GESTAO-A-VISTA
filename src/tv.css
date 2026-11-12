@@ -184,7 +184,7 @@
 
 /* Tela de contribuição percentual (/viewer/percentage): mesmo layout da TV */
 .tv-metric strong .tv-metric-of{font:500 .4em 'DM Sans',sans-serif;letter-spacing:0;color:var(--tv-muted)}
-.tv-percent-ranking th:nth-child(3){width:13.5em;text-align:left}
+.tv-percent-ranking th:nth-child(3){width:10.5em;text-align:left}
 .tv-percent-ranking th:nth-child(4){width:5.4em}
 .tv-percent-cell{display:flex;align-items:center;gap:.7em}
 .tv-percent-bar{flex:1;height:.5em;background:var(--tv-turquoise-soft);border-radius:1em;overflow:hidden}
@@ -200,3 +200,16 @@
 .sales-link-on,.sales-link-off{margin-left:auto;border:0;border-radius:7px;padding:7px 10px;font-size:9px;font-weight:800;white-space:nowrap;cursor:pointer}
 .sales-link-on{background:#EAF8FA;color:#246D76}
 .sales-link-off{background:#FFF0EF;color:#A9443D}
+
+/* Tela de %: Salão, Digital e Checkout no cartão de indicadores, ao lado da meta geral */
+.tv-sector span b{font-weight:800;color:var(--tv-navy)}
+.tv-sector-track{height:1em;background:var(--tv-turquoise-soft);border-radius:1em;overflow:hidden}
+.tv-sector-track i{display:block;height:100%;background:var(--tv-turquoise);border-radius:inherit;transition:width .6s ease}
+.tv-metric.tv-sector.is-done{background:var(--tv-yellow-soft)}
+.tv-metric.tv-sector.is-done .tv-sector-track{background:#FFFFFF}
+.tv-metric.tv-sector.is-done .tv-sector-track i{background:var(--tv-yellow)}
+.tv-sector-tag{flex:none;font-size:.7em;font-weight:700;color:var(--tv-turquoise-ink);background:var(--tv-turquoise-soft);border-radius:.4em;padding:.1em .55em}
+@media (prefers-reduced-motion:reduce){.tv-sector-track i{transition:none}}
+
+/* Admin: lista de metas semanais com título e valor em linhas separadas */
+.goal-list-text{display:grid;gap:2px}
