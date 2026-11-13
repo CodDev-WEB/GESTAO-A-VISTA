@@ -40,9 +40,9 @@
 
 /* Cabeçalho */
 .tv-header{flex:none;height:6em;display:flex;align-items:center;justify-content:space-between;gap:2.4em}
-.tv-brand{display:flex;align-items:center;gap:1em;min-width:0}
-.tv-brand-logo{flex:none;height:4.6em;width:auto;display:block}
-.tv-brand h1{font:800 3.4em Manrope,sans-serif;letter-spacing:-.024em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tv-brand{display:flex;align-items:center;gap:2.4em;min-width:0}
+.tv-brand-logo{flex:none;height:6.2em;width:auto;display:block}
+.tv-brand h1{font:800 3.1em Manrope,sans-serif;letter-spacing:-.024em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .tv-header-tools{flex:none;display:flex;align-items:center;gap:2em}
 .tv-periods{display:flex;gap:.2em;padding:.4em;background:var(--tv-turquoise-soft);border-radius:1.2em}
 .tv-periods button{border:0;background:transparent;color:var(--tv-turquoise-ink);font:inherit;font-size:2.1em;padding:.38em .86em;border-radius:.43em;cursor:pointer}
