@@ -270,3 +270,10 @@
 .tv-sector-split .tv-flag{font-size:.72em;margin-left:0;padding:.15em .45em}
 .tv-panel-head h2{display:flex;align-items:center;white-space:nowrap}
 .tv-panel-head h2 .tv-flag{font-size:.55em}
+
+/* Reconhecimentos recentes: rolagem infinita com destaque no centro e degradê nas bordas */
+.tv-reel{position:relative;flex:1;min-height:0;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 62%,transparent 100%)}
+.tv-reel:not(.is-moving){-webkit-mask-image:none;mask-image:none}
+.tv-reel-track{display:flex;flex-direction:column;gap:1em;will-change:transform}
+.tv-reel:not(.is-moving) .tv-reel-track{justify-content:center;height:100%}
+.tv-reel-track article{background:var(--tv-white);border-radius:1.2em;padding:1.2em 1.6em;display:flex;flex-direction:column;gap:.4em;transform-origin:center;will-change:transform,opacity}
