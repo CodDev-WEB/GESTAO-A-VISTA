@@ -83,8 +83,8 @@ export class ErpClient {
     this.scheme = (env.ERP_AUTH_SCHEME || 'Authentication').trim()
     this.sendX = env.ERP_SEND_X_TOKEN === 'true'
     this.pagination = env.ERP_PAGINATION === 'body' ? 'body' : 'query'
-    const size = Number(env.ERP_PAGE_SIZE || 500)
-    this.pageSize = Number.isInteger(size) && size >= 1 && size <= 5000 ? size : 500
+    const size = Number(env.ERP_PAGE_SIZE || 100)
+    this.pageSize = Number.isInteger(size) && size >= 1 && size <= 5000 ? size : 100
   }
 
   /** Uma página da consulta. Repete uma vez em 429 e em falhas temporárias. */
@@ -130,20 +130,21 @@ export class ErpClient {
   }
 
   /**
-   * Todas as páginas da consulta. Retorna complete=false (sem lançar erro) só quando a
-   * paginação não se comporta como esperado; erros de rede/autenticação lançam ErpError.
+   * Todas as páginas da consulta.
+   * A API pode devolver menos registros que o limit pedido (o ERP limita a 100 por consulta),
+   * então "página menor que o limit" NÃO significa fim: só uma página vazia encerra a leitura.
+   * Se a API repetir a mesma página (offset ignorado), a leitura é marcada como incompleta.
    */
-  async all(sql: string, maxPages = 40): Promise<{ rows: RawRow[]; pages: number; complete: boolean; note?: string }> {
+  async all(sql: string, maxPages = 60): Promise<{ rows: RawRow[]; pages: number; complete: boolean; note?: string }> {
     const rows: RawRow[] = []
     let previousFirst = ''
     for (let p = 0; p < maxPages; p++) {
-      const { rows: page } = await this.page(sql, p * this.pageSize)
-      if (page.length > this.pageSize) return { rows: page, pages: p + 1, complete: p === 0, note: p === 0 ? 'A API ignorou o limit e devolveu tudo de uma vez.' : 'Página maior que o limit.' }
-      const first = JSON.stringify(page[0] ?? null)
-      if (p > 0 && page.length && first === previousFirst) return { rows, pages: p + 1, complete: false, note: 'A API repetiu a mesma página: offset não foi respeitado.' }
+      const { rows: page } = await this.page(sql, rows.length)
+      if (!page.length) return { rows, pages: p + 1, complete: true }
+      const first = JSON.stringify(page[0])
+      if (p > 0 && first === previousFirst) return { rows, pages: p + 1, complete: false, note: 'A API repetiu a mesma página: offset não foi respeitado.' }
       previousFirst = first
       rows.push(...page)
-      if (page.length < this.pageSize) return { rows, pages: p + 1, complete: true }
     }
     return { rows, pages: maxPages, complete: false, note: `Mais de ${maxPages} páginas: consulta interrompida.` }
   }
