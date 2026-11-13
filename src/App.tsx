@@ -436,7 +436,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
        ?<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">% meta individual</th><th scope="col">% cota setor</th><th scope="col">Vendas</th></tr>
        :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">% da cota do setor</th><th scope="col">Vendas</th></tr>)
       :<tr><th scope="col">Pos.</th><th scope="col">Vendedora</th><th scope="col">Valor vendido</th><th scope="col">Vendas</th><th scope="col">Ticket médio</th></tr>}</thead>
-     <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=displayRows.length>3&&i>=displayRows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
+     <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;return <tr key={r.seller.id}>
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
       <td>{percent
        ?<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-text"><span className="tv-seller-name">{displayName(r.seller.full_name)}</span>{r.sector&&<small>{sectorName(r.sector)}{r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</small>}</span></span>
