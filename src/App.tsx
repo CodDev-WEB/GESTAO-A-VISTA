@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { supabase, hasSupabase } from './lib/supabase'
 import ErpIntegration from './ErpIntegration'
+import logoYupee from './assets/logo-yupee.png'
 
 type Sector = 'salao'|'digital'|'checkout'
 type Seller = { id:string; full_name:string; email:string|null; photo_url:string|null; active:boolean; can_sell?:boolean; sector?:Sector|null }
@@ -372,7 +373,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  }
  return <div className="tv">
   <header className="tv-header">
-   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>{sectorsView?'Ranking por setor':percent?'Contribuição para a meta':'O resultado é de todos nós.'}</h1></div>
+   <div className="tv-brand"><img className="tv-brand-logo" src={logoYupee} alt="Yupee Petstore"/><h1>{sectorsView?'Ranking por setor':percent?'Contribuição para a meta':'O resultado é de todos nós.'}</h1></div>
    <div className="tv-header-tools">
     <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div><nav className="tv-views" aria-label="Telas do painel">{views.map(([m,label,to])=><Link key={m} to={to} aria-current={mode===m?'page':undefined}>{label}</Link>)}</nav>
     {period==='range'
