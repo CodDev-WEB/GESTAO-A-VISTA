@@ -22,7 +22,7 @@
     "ERP_AUTH_SCHEME": "Authentication",
     "ERP_SEND_X_TOKEN": "false",
     "ERP_PAGINATION": "query",
-    "ERP_PAGE_SIZE": "500"
+    "ERP_PAGE_SIZE": "100"
   },
   "observability": { "enabled": true },
   // Necessário para o `npx wrangler preview` que o Cloudflare Workers Builds

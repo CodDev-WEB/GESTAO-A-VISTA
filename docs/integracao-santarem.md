@@ -70,7 +70,7 @@ Variáveis comuns (já em `wrangler.jsonc`, ajuste se o fornecedor pedir outro f
 | `ERP_AUTH_SCHEME` | `Authentication` | Envia `Authorization: Authentication TOKEN`. Troque para `Bearer` se o fornecedor pedir |
 | `ERP_SEND_X_TOKEN` | `false` | `true` para enviar também `X-ERP-Token: TOKEN` |
 | `ERP_PAGINATION` | `query` | `offset`/`limit` na URL; `body` para enviar no JSON |
-| `ERP_PAGE_SIZE` | `500` | Registros por página |
+| `ERP_PAGE_SIZE` | `100` | Registros por página (o ERP devolve no máximo 100 por consulta) |
 
 ## Publicação e ativação segura
 

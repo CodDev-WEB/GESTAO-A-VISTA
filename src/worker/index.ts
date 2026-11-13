@@ -50,7 +50,7 @@ async function status(env: Env, db: Supabase) {
   return {
     integration: { ...rest, running: Boolean(lock_until && lock_until > new Date().toISOString()) },
     secrets: { ERP_TOKEN: Boolean(env.ERP_TOKEN), SUPABASE_URL: Boolean(env.SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY: Boolean(env.SUPABASE_SERVICE_ROLE_KEY) },
-    config: { api_url: env.ERP_API_URL || 'padrão', auth_scheme: env.ERP_AUTH_SCHEME || 'Authentication', send_x_token: env.ERP_SEND_X_TOKEN === 'true', pagination: env.ERP_PAGINATION === 'body' ? 'body' : 'query', page_size: Number(env.ERP_PAGE_SIZE || 500) },
+    config: { api_url: env.ERP_API_URL || 'padrão', auth_scheme: env.ERP_AUTH_SCHEME || 'Authentication', send_x_token: env.ERP_SEND_X_TOKEN === 'true', pagination: env.ERP_PAGINATION === 'body' ? 'body' : 'query', page_size: Number(env.ERP_PAGE_SIZE || 100) },
     counts: { mapped, unmatched_rows: unmatchedRows, unmatched_employees: new Set(unmatchedOpen.map(r => r.erp_employee_id)).size, staged, published },
     schedule: { time_zone: TIME_ZONE, today: todayIn(), recurring: 'a cada 5 minutos (ontem e hoje)', daily: `06:30, reprocessa os últimos ${integration.reprocess_days} dias`, next_run: integration.enabled ? nextRun() : null },
     last_run: last[0] ?? null,
