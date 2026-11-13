@@ -73,7 +73,9 @@ export class ErpClient {
   readonly pageSize: number
   requests = 0
 
-  constructor(env: Env, private fetcher: typeof fetch = fetch) {
+  // O fetch do Workers não pode ser chamado como método de outro objeto ("Illegal invocation"):
+  // por isso a função padrão chama o fetch global diretamente.
+  constructor(env: Env, private fetcher: typeof fetch = (input, init) => fetch(input, init)) {
     if (!env.ERP_TOKEN) throw new ErpError('Secret ERP_TOKEN não configurado.', 'config')
     this.url = env.ERP_API_URL || DEFAULT_ERP_URL
     if (!/^https:\/\//.test(this.url)) throw new ErpError('ERP_API_URL precisa usar https.', 'config')
