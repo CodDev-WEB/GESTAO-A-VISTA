@@ -155,3 +155,12 @@ Rotas: `/viewer/sectors` (TV) e `/admin/sectors` (admin). Mesma base da tela de 
 - Em cada ranking: posição, nome, nível (Meta, Super, Diamante), % da meta individual e vendas; no Checkout, também o ticket médio de cada pessoa. A líder de cada setor fica destacada.
 - O seletor **R$ · % · Setores** no cabeçalho alterna entre as três telas.
 - Na TV, os nomes aparecem só com iniciais maiúsculas ("EDILAINE  CARDOSO" → "Edilaine Cardoso"); o cadastro não muda.
+
+## Integração Santarém Sistemas (Meu ERP Online)
+
+O Worker consulta as vendas no ERP e grava no Supabase. Guia completo (Secrets, publicação, ativação segura, testes e pendências): [`docs/integracao-santarem.md`](docs/integracao-santarem.md).
+
+- Admin → **Integrações**: estado da conexão, última e próxima sincronização, vinculados, pendências, registros importados, erros e histórico; botões Testar conexão, Consultar vendas, Sincronizar agora e Associar funcionário.
+- O vínculo é feito **pelo código do funcionário no ERP**, manualmente. Nada é criado nem associado pelo nome, e o setor da colaboradora nunca muda na sincronização.
+- Os dados do ERP só entram em `sales_daily` (rankings) depois que a publicação é ativada no admin, a partir de uma data escolhida. Importações manuais anteriores a essa data continuam valendo; cada registro guarda a origem (`source`: `manual`, `csv` ou `erp`).
+- Migração: `supabase/migrations/20261113150000_erp_integration.sql`.
