@@ -3,11 +3,30 @@
   "name": "gestao-a-vista",
   "compatibility_date": "2026-11-09",
   "workers_dev": true,
+  // Worker: rotas /api/erp/* e sincronização agendada com o Santarém Sistemas.
+  "main": "src/worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Só /api/* passa pelo código do Worker; o resto continua servido direto pelos assets (SPA).
+    "run_worker_first": ["/api/*"]
   },
+  "triggers": {
+    // A cada 5 minutos: ontem e hoje. Às 09:30 UTC (06:30 em Belém): reprocessa os últimos dias.
+    // Os dois não fazem nada enquanto a sincronização automática estiver desligada no admin.
+    "crons": ["*/5 * * * *", "30 9 * * *"]
+  },
+  "vars": {
+    "ERP_API_URL": "https://api.meuerponline.com.br/publica/api/consulta/sql/v1",
+    "ERP_AUTH_SCHEME": "Authentication",
+    "ERP_SEND_X_TOKEN": "false",
+    "ERP_PAGINATION": "query",
+    "ERP_PAGE_SIZE": "500"
+  },
+  "observability": { "enabled": true },
   // Necessário para o `npx wrangler preview` que o Cloudflare Workers Builds
   // executa nos branches que não são de produção (prévias de PR).
   "previews": {}
+  // Secrets (não ficam neste arquivo): ERP_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 }
