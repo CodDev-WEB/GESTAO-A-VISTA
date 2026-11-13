@@ -104,6 +104,8 @@
 .tv-podium-place{background:var(--tv-white);border-radius:1.2em;padding:1.4em 2em;display:flex;align-items:center;gap:2em;min-width:0}
 .tv-podium-place>div{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:1.2em;row-gap:.2em}
 .tv-podium-place>div strong{grid-column:1/-1}
+.tv-podium-place>div.is-stacked>*{grid-column:1/-1}
+.tv-podium-place>div.is-stacked small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-podium-place strong{font-size:2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-podium-place .tv-podium-value{font-size:2.4em}
 .tv-podium-place small{font-size:1.9em}

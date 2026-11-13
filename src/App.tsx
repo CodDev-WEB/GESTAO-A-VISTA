@@ -343,7 +343,10 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const actions=useSlidingWindow(actionRanking.length,4,4000,'actions')
  const visibleRows=displayRows.slice(ranking.start,ranking.start+8)
  const visibleActions=actionRanking.slice(actions.start,actions.start+4)
- const [first,second,third]=displayRows
+ // Pódio: quem mais faturou no filtro (dia, semana, mês ou período). Na tela de %, mostra a participação no faturamento da loja.
+ const podiumRows=useMemo(()=>percent?[...percentRows].filter(r=>r.revenue>0).sort((a,b)=>b.revenue-a.revenue||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')):displayRows,[percent,percentRows,displayRows])
+ const share=(r:{revenue:number})=>periodRevenue>0?r.revenue/periodRevenue*100:0
+ const [first,second,third]=podiumRows
  const loading=data.busy&&!data.updatedAt
  const emptySales=data.error&&!data.updatedAt?'Não foi possível carregar os dados. Nova tentativa em 1 minuto.':loading?'Carregando dados…':'Nenhuma venda registrada neste período.'
  // Ranking de um setor: % da meta individual (ou da cota, sem plano), nível e vendas; no Checkout, também o ticket médio.
@@ -406,16 +409,16 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
    <div className="tv-sector-stack">{(['digital','checkout'] as Sector[]).map(sec=><div className="tv-panel tv-ranking tv-sector-rank" key={sec} style={{flex:(percentRows.filter(r=>r.sector===sec).length||1)+2.2+' 1 0'}}>{sectorRank(sec)}</div>)}</div>
    </>:<>
    <div className="tv-panel tv-podium">
-    <div className="tv-panel-head"><h2>Pódio</h2><span>{windowTag}</span></div>
+    <div className="tv-panel-head"><h2>Pódio</h2><span>{percent?'Faturamento · ':''}{windowTag}</span></div>
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{displayName(first.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{first.count} {first.count===1?'venda':'vendas'}</small>
+      <strong>{displayName(first.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(share(first),1):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{percent?money(first.revenue)+' · ':''}{first.count} {first.count===1?'venda':'vendas'}</small>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div><strong>{displayName(r.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
+       <div className={percent?'is-stacked':undefined}><strong>{displayName(r.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(share(r),1):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{percent?money(r.revenue)+' · ':''}{r.count} {r.count===1?'venda':'vendas'}</small></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}

@@ -5,7 +5,7 @@ Aplicação de acompanhamento de desempenho comercial com painel para TV e área
 ## Funcionalidades
 
 - Painel diário, semanal e mensal com faturamento, ticket médio, quantidade de vendas, meta e ranking.
-- Pódio das três primeiras colocadas.
+- Pódio das três primeiras colocadas por faturamento no filtro escolhido (dia, semana, mês ou período). Na tela de porcentagem, o pódio mostra a participação de cada uma no faturamento da loja, o valor em R$ e a quantidade de vendas.
 - Reconhecimento de boas práticas e ideias implementadas.
 - Cadastro de colaboradoras e fotos.
 - Metas mensais e diárias.
