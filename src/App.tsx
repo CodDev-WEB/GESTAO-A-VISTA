@@ -239,6 +239,9 @@ const salesIn=(sales:Sale[],ids:string[],start:string,end:string)=>sales.filter(
 const sumRevenue=(rows:Sale[])=>rows.reduce((n,x)=>n+Number(x.revenue),0)
 const sumCount=(rows:Sale[])=>rows.reduce((n,x)=>n+Number(x.sales_count),0)
 const ticketOf=(rows:Sale[])=>{const c=sumCount(rows);return c?rows.reduce((n,x)=>n+Number(x.gross_revenue??Math.max(Number(x.revenue),0)),0)/c:0}
+// Nome para a TV: só iniciais maiúsculas e sem espaços repetidos ("EDILAINE  CARDOSO" → "Edilaine Cardoso"). O cadastro não muda.
+const lowerWords=new Set(['da','das','de','do','dos','e'])
+const displayName=(name:string)=>name.trim().split(/\s+/).map((w,i)=>{const l=w.toLocaleLowerCase('pt-BR');return i>0&&lowerWords.has(l)?l:l.charAt(0).toLocaleUpperCase('pt-BR')+l.slice(1)}).join(' ')
 const sellerColor=(id:string)=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return ['#B07A5A','#6E8CA6','#7E9A86','#8A7FB0','#5E8F9E','#A0708A','#7A8F5E','#9A7A50'][h%8]}
 const clock=(d:Date)=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
 const longDate=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','')
@@ -261,8 +264,10 @@ function useSlidingWindow(length:number,size:number,interval:number,resetKey:str
  return {start:safe,key:safe}
 }
 // mode 'values': painel TV com valores em reais. mode 'percent': mesma tela, com a contribuição de cada uma em % da meta mensal e sem valores em reais.
-function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useData>;mode?:'values'|'percent';admin?:boolean}){
- const percent=mode==='percent'
+// mode 'sectors': mesma base da tela de %, com um ranking para cada setor (Salão, Digital e Checkout).
+function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useData>;mode?:'values'|'percent'|'sectors';admin?:boolean}){
+ const percent=mode!=='values',sectorsView=mode==='sectors'
+ const views:[string,string,string][]=admin?[['admin','Admin','/admin'],['percent','%','/admin/percentage'],['sectors','Setores','/admin/sectors']]:[['values','R$','/viewer/board'],['percent','%','/viewer/percentage'],['sectors','Setores','/viewer/sectors']]
  const [period,setPeriod]=useState<Period>('month'),[date,setDate]=useState(today()),[endDate,setEndDate]=useState(today()),[now,setNow]=useState(new Date())
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),30000);return()=>clearInterval(t)},[])
  const rangeEnd=endDate>=date?endDate:date
@@ -331,20 +336,37 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const [first,second,third]=displayRows
  const loading=data.busy&&!data.updatedAt
  const emptySales=data.error&&!data.updatedAt?'Não foi possível carregar os dados. Nova tentativa em 1 minuto.':loading?'Carregando dados…':'Nenhuma venda registrada neste período.'
+ // Ranking de um setor: % da meta individual (ou da cota, sem plano), nível e vendas; no Checkout, também o ticket médio.
+ const sectorRank=(sec:Sector)=>{
+  const st=sectorStats.find(x=>x.sector===sec)!,list=percentRows.filter(r=>r.sector===sec),showTicket=sec==='checkout'
+  return <>
+   <div className="tv-panel-head"><h2>{sectorName(sec)}</h2><span>{pct(st.percent,1)} da meta do setor · {list.length} {list.length===1?'pessoa':'pessoas'}</span></div>
+   {list.length?<table className={showTicket?'has-ticket':undefined}>
+    <thead><tr><th scope="col">Pos.</th><th scope="col">Vendedora</th>{showTicket&&<th scope="col">Ticket</th>}<th scope="col">{hasIndividual?'% meta':'% cota'}</th><th scope="col">Vendas</th></tr></thead>
+    <tbody>{list.map((r,i)=><tr key={r.seller.id} className={i===0&&r.contribution>0?'is-leader':undefined}>
+     <td><span className={i===0?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
+     <td><span className="tv-seller"><span className="tv-seller-text"><span className="tv-seller-name">{displayName(r.seller.full_name)}</span>{r.tier&&<small><span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span></small>}</span></span></td>
+     {showTicket&&<td className="tv-num tv-muted">{exactMoney(r.ticket)}</td>}
+     <td className="tv-num tv-strong">{pct(r.contribution,1)}</td>
+     <td className="tv-num tv-muted">{r.count}</td>
+    </tr>)}</tbody>
+   </table>:<p className="tv-empty">Nenhuma colaboradora neste setor.</p>}
+  </>
+ }
  return <div className="tv">
   <header className="tv-header">
-   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>{percent?'Contribuição para a meta':'O resultado é de todos nós.'}</h1></div>
+   <div className="tv-brand"><span className="tv-brand-mark"><Trophy aria-hidden="true"/></span><h1>{sectorsView?'Ranking por setor':percent?'Contribuição para a meta':'O resultado é de todos nós.'}</h1></div>
    <div className="tv-header-tools">
-    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div>{percent?<Link className="tv-switch" to={admin?'/admin':'/viewer/board'}>{admin?'Admin':'Ver em R$'}</Link>:<Link className="tv-switch" to="/viewer/percentage">Ver em %</Link>}
+    <div className="tv-periods" role="group" aria-label="Período">{periodTabs.map(([p,label])=><button type="button" key={p} aria-pressed={period===p} onClick={()=>setPeriod(p)}>{label}</button>)}</div><nav className="tv-views" aria-label="Telas do painel">{views.map(([m,label,to])=><Link key={m} to={to} aria-current={mode===m?'page':undefined}>{label}</Link>)}</nav>
     {period==='range'
      ?<div className="tv-dates"><label><span className="tv-visually-hidden">Data inicial</span><input type="date" value={date} max={endDate} onChange={e=>{if(e.target.value){setDate(e.target.value);if(e.target.value>endDate)setEndDate(e.target.value)}}}/></label><span aria-hidden="true">a</span><label><span className="tv-visually-hidden">Data final</span><input type="date" value={endDate} min={date} onChange={e=>{if(e.target.value)setEndDate(e.target.value)}}/></label></div>
      :period==='week'&&monthPlanWeeks.length>0&&planWeek
-      ?<label className="tv-dates"><span className="tv-visually-hidden">Semana do plano</span><select value={planWeek.week_number} onChange={e=>{const w=monthPlanWeeks.find(x=>x.week_number===Number(e.target.value));if(w){setDate(w.start_date);setEndDate(w.start_date)}}}>{monthPlanWeeks.map(w=><option key={w.week_number} value={w.week_number}>{weekName(w)} ({shortDay(w.start_date)} a {shortDay(w.end_date)})</option>)}</select></label>
+      ?<label className="tv-dates"><span className="tv-visually-hidden">Semana do plano</span><select value={planWeek.week_number} onChange={e=>{const w=monthPlanWeeks.find(x=>x.week_number===Number(e.target.value));if(w){setDate(w.start_date);setEndDate(w.start_date)}}}>{monthPlanWeeks.map(w=><option key={w.week_number} value={w.week_number}>{weekName(w)} ({shortDay(w.start_date).slice(0,2)} a {shortDay(w.end_date)})</option>)}</select></label>
            :<label className="tv-dates"><span className="tv-visually-hidden">Data de referência</span><input type="date" value={date} onChange={e=>{if(e.target.value){setDate(e.target.value);setEndDate(e.target.value)}}}/></label>}
-    <span className="tv-clock">{period!=='range'&&<>{longDate(date)}, </>}<strong>{clock(now)}</strong></span>
+    {period!=='range'&&<span className="tv-clock">{period==='week'&&planWeek?'':longDate(date)+', '}<strong>{clock(now)}</strong></span>}
     {data.error
      ?<span className="tv-status is-offline" role="status">{data.updatedAt?'Sem atualização desde '+clock(data.updatedAt):'Dados não carregados'}</span>
-     :<span className="tv-status" role="status">{data.updatedAt?'Atualizado às '+clock(data.updatedAt):'Carregando dados'}</span>}
+     :<span className="tv-status" role="status" title={data.updatedAt?'Atualizado às '+clock(data.updatedAt):undefined}>{data.updatedAt?(period==='range'?'':'Atualizado às ')+clock(data.updatedAt):'Carregando dados'}</span>}
    </div>
   </header>
 
@@ -368,18 +390,22 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
    </div>}
   </section>
 
-  <section className="tv-body">
+  <section className={sectorsView?'tv-body tv-body-sectors':'tv-body'}>
+   {sectorsView?<>
+   <div className="tv-panel tv-ranking tv-sector-rank">{sectorRank('salao')}</div>
+   <div className="tv-sector-stack">{(['digital','checkout'] as Sector[]).map(sec=><div className="tv-panel tv-ranking tv-sector-rank" key={sec} style={{flex:(percentRows.filter(r=>r.sector===sec).length||1)+2.2+' 1 0'}}>{sectorRank(sec)}</div>)}</div>
+   </>:<>
    <div className="tv-panel tv-podium">
     <div className="tv-panel-head"><h2>Pódio</h2><span>{windowTag}</span></div>
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{first.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{first.count} {first.count===1?'venda':'vendas'}</small>
+      <strong>{displayName(first.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(first.contribution):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{first.count} {first.count===1?'venda':'vendas'}</small>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div><strong>{r.seller.full_name}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
+       <div><strong>{displayName(r.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(r.contribution):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}
@@ -396,8 +422,8 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
      <tbody key={ranking.key} className="tv-ranking-body">{visibleRows.map((r,v)=>{const i=ranking.start+v;const isBottomThree=displayRows.length>3&&i>=displayRows.length-3;return <tr key={r.seller.id} className={isBottomThree?'tv-bottom-three':''}>
       <td><span className={i<3?'tv-pos is-top':'tv-pos'}>{String(i+1).padStart(2,'0')}</span></td>
       <td>{percent
-       ?<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-text"><span className="tv-seller-name">{r.seller.full_name}</span>{r.sector&&<small>{sectorName(r.sector)}{r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</small>}</span></span>
-       :<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{r.seller.full_name}</span>{i===0&&r.revenue>0&&<span className="tv-leader">Líder</span>}</span>}</td>
+       ?<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-text"><span className="tv-seller-name">{displayName(r.seller.full_name)}</span>{r.sector&&<small>{sectorName(r.sector)}{r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</small>}</span></span>
+       :<span className="tv-seller"><TvAvatar seller={r.seller} className="sm"/><span className="tv-seller-name">{displayName(r.seller.full_name)}</span></span>}</td>
       {percent
        ?<><td><span className="tv-percent-cell"><span className="tv-percent-bar" aria-hidden="true"><i style={{width:bar(r.contribution)}}/></span><strong>{pct(r.contribution,1)}</strong></span></td>{hasIndividual&&<td className="tv-num tv-muted">{pct(r.quota,1)}</td>}<td className="tv-num tv-muted">{r.count}</td></>
        :<><td className="tv-num tv-strong">{exactMoney(r.revenue)}</td><td className="tv-num tv-muted">{r.count}</td><td className="tv-num tv-muted">{exactMoney(r.ticket)}</td></>}
@@ -406,11 +432,12 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     {displayRows.length===0&&<p className="tv-empty">{percent?'Defina o setor das colaboradoras e cadastre o plano de metas no admin.':emptySales}</p>}
    </div>
 
+   </>}
    <div className="tv-panel tv-culture">
     <div>
      <div className="tv-panel-head"><h2>Ranking de boas ações</h2><span>Desde o início</span></div>
      <ol className="tv-actions" key={actions.key}>{visibleActions.map((r,v)=>{const pos=actions.start+v;return <li key={r.seller.id}>
-      <span className="tv-actions-pos">{String(pos+1).padStart(2,'0')}</span><span className="tv-actions-name">{r.seller.full_name}</span>
+      <span className="tv-actions-pos">{String(pos+1).padStart(2,'0')}</span><span className="tv-actions-name">{displayName(r.seller.full_name)}</span>
       <span className="tv-muted">{r.actions} {r.actions===1?'ação':'ações'}</span>
       <span className="tv-stars" aria-label={r.stars+(r.stars===1?' estrela':' estrelas')}><TvStar/>{r.stars}</span>
      </li>})}</ol>
@@ -419,7 +446,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-recents">
      <h2>Reconhecimentos recentes</h2>
      {recentRecognitions.map(rec=><article key={rec.id}>
-      <div className="tv-recent-head"><strong>{sellerById.get(rec.seller_id)?.full_name||'Colaboradora'}</strong><span className="tv-recent-title">{rec.title}</span><span className="tv-stars" aria-label={rec.stars+(rec.stars===1?' estrela':' estrelas')}><TvStar/>{rec.stars}</span></div>
+      <div className="tv-recent-head"><strong>{displayName(sellerById.get(rec.seller_id)?.full_name||'Colaboradora')}</strong><span className="tv-recent-title">{rec.title}</span><span className="tv-stars" aria-label={rec.stars+(rec.stars===1?' estrela':' estrelas')}><TvStar/>{rec.stars}</span></div>
       <p>{rec.description}</p>
      </article>)}
      {recentRecognitions.length===0&&<p className="tv-empty tv-empty-card">Os reconhecimentos aparecerão aqui com o nome, o motivo e as estrelas.</p>}
@@ -572,7 +599,7 @@ function Admin(){
   await data.load()}
  async function addRecognition(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('recognitions').insert({seller_id:recSeller,stars:recStars,kind:recKind,title:recTitle,description:recDescription,recognized_at:today()});setMessage(error?.message||'Reconhecimento publicado no painel.');if(!error){setRecTitle('');setRecDescription('');setRecStars(1);await data.load()}}
  async function uploadPhoto(e:FormEvent){e.preventDefault();const el=document.getElementById('seller-photo') as HTMLInputElement;const f=el.files?.[0];if(!f||!supabase||!photoSeller)return;const path=photoSeller+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9.-]/g,'_');const {error}=await supabase.storage.from('seller-photos').upload(path,f,{upsert:true});if(error){setMessage(error.message);return}const {data:pub}=supabase.storage.from('seller-photos').getPublicUrl(path);const {error:e2}=await supabase.from('sellers').update({photo_url:pub.publicUrl}).eq('id',photoSeller);setMessage(e2?.message||'Foto atualizada.');await data.load()}
- return <div className="admin-shell"><aside className="admin-sidebar"><Brand/><div className="sidebar-label">GESTÃO COMERCIAL</div><nav>{[['overview','Visão geral',LayoutDashboard],['import','Importar vendas',Upload],['sellers','Colaboradoras',Users],['goals','Metas',Target],['recognitions','Reconhecimentos',Star]] .map(([id,label,Icon])=><button key={String(id)} className={tab===id?'selected':''} onClick={()=>setTab(String(id))}>{<Icon size={18}/>} {String(label)}<ChevronRight size={14}/></button>)}</nav><div className="sidebar-bottom"><button onClick={()=>nav('/')}><Monitor size={17}/> Abrir painel TV</button><button onClick={()=>nav('/admin/percentage')}><TrendingUp size={17}/> Tela de porcentagens</button><button onClick={logout}><LogOut size={17}/> Sair</button></div></aside><main className="admin-content"><header className="admin-top"><div><span className="eyebrow">GESTÃO À VISTA / ADMINISTRAÇÃO</span><h1>{({overview:'Visão geral',import:'Importar vendas',sellers:'Colaboradoras',goals:'Metas comerciais',recognitions:'Reconhecimentos'} as Record<string,string>)[tab]}</h1></div><div className="admin-user"><span className="admin-online"/> ADMINISTRAÇÃO</div></header><DemoNotice/>{message&&<div className="success-message"><CheckCircle2 size={16}/>{message}<button onClick={()=>setMessage('')}><X size={15}/></button></div>}{parseError&&<div className="error-box">{parseError}</div>}
+ return <div className="admin-shell"><aside className="admin-sidebar"><Brand/><div className="sidebar-label">GESTÃO COMERCIAL</div><nav>{[['overview','Visão geral',LayoutDashboard],['import','Importar vendas',Upload],['sellers','Colaboradoras',Users],['goals','Metas',Target],['recognitions','Reconhecimentos',Star]] .map(([id,label,Icon])=><button key={String(id)} className={tab===id?'selected':''} onClick={()=>setTab(String(id))}>{<Icon size={18}/>} {String(label)}<ChevronRight size={14}/></button>)}</nav><div className="sidebar-bottom"><button onClick={()=>nav('/')}><Monitor size={17}/> Abrir painel TV</button><button onClick={()=>nav('/admin/percentage')}><TrendingUp size={17}/> Tela de porcentagens</button><button onClick={()=>nav('/admin/sectors')}><Users size={17}/> Ranking por setor</button><button onClick={logout}><LogOut size={17}/> Sair</button></div></aside><main className="admin-content"><header className="admin-top"><div><span className="eyebrow">GESTÃO À VISTA / ADMINISTRAÇÃO</span><h1>{({overview:'Visão geral',import:'Importar vendas',sellers:'Colaboradoras',goals:'Metas comerciais',recognitions:'Reconhecimentos'} as Record<string,string>)[tab]}</h1></div><div className="admin-user"><span className="admin-online"/> ADMINISTRAÇÃO</div></header><DemoNotice/>{message&&<div className="success-message"><CheckCircle2 size={16}/>{message}<button onClick={()=>setMessage('')}><X size={15}/></button></div>}{parseError&&<div className="error-box">{parseError}</div>}
  {data.error&&<div className="error-box">{data.error}</div>}
  {tab==='overview'&&<><div className="admin-cards"><Metric icon={<Users/>} label="COLABORADORAS ATIVAS" value={String(data.sellers.filter(s=>s.active).length)} detail="Equipe cadastrada" tone="blue"/><Metric icon={<TrendingUp/>} label="FATURAMENTO DO MÊS" value={money(data.sales.filter(s=>s.sale_date.startsWith(today().slice(0,7))).reduce((n,s)=>n+Number(s.revenue),0))} detail="Vendas registradas" tone="green"/><Metric icon={<ShoppingBag/>} label="VENDAS NO MÊS" value={String(data.sales.filter(s=>s.sale_date.startsWith(today().slice(0,7))).reduce((n,s)=>n+Number(s.sales_count),0))} detail="Atendimentos convertidos" tone="gold"/><Metric icon={<Star/>} label="ESTRELAS CONCEDIDAS" value={String(data.recognitions.reduce((n,r)=>n+r.stars,0))} detail="Reconhecimentos acumulados" tone="purple"/></div><div className="admin-panel"><div className="panel-head"><div><h2>Desempenho do mês</h2><p>Ranking atualizado com os registros importados.</p></div><button className="btn secondary" onClick={()=>data.load()}><RefreshCw size={15}/> Atualizar dados</button></div><div className="table-wrap"><table><thead><tr><th>POSIÇÃO</th><th>VENDEDORA</th><th>FATURAMENTO</th><th>VENDAS</th><th>TICKET MÉDIO</th></tr></thead><tbody>{rankRows(data.sellers,data.sales,'month',today()).map((r,i)=><tr key={r.seller.id}><td><b className="rank-number">{i+1}</b></td><td>{r.seller.full_name}</td><td className="money-cell">{exactMoney(r.revenue)}</td><td>{r.count}</td><td>{exactMoney(r.ticket)}</td></tr>)}</tbody></table></div></div><div className="admin-shortcuts"><button onClick={()=>setTab('import')}><Upload/><strong>Importar vendas</strong><span>Atualize os dados diários</span><ArrowUpRight/></button><button onClick={()=>setTab('recognitions')}><Star/><strong>Reconhecer equipe</strong><span>Valorize boas práticas</span><ArrowUpRight/></button><button onClick={()=>setTab('goals')}><Target/><strong>Definir metas</strong><span>Configure o objetivo do mês</span><ArrowUpRight/></button></div></>}
  {tab==='import'&&<div className="admin-panel"><h2>Importação diária de vendas</h2><p>Envie uma planilha Excel no modelo Diária Yup ou um arquivo CSV. Os dados serão conferidos antes de gravar.</p><label className="upload-zone"><input type="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/><Upload size={26}/><strong>{file?file.name:'Selecionar arquivo Excel ou CSV'}</strong><span>Excel (.xlsx/.xls) ou CSV · Prévia antes da confirmação</span></label><div className="format-hint"><strong>Formatos aceitos:</strong><br/>Excel: aba BASE VENDAS com Data, Vendedora, Faturamento líquido (R$) e Nº de vendas.<br/>CSV: data,vendedora,valor,vendas (e-mail opcional).<br/>Datas aceitas: AAAA-MM-DD ou DD/MM/AAAA. Valores em reais, inclusive negativos para registrar estornos. Estornos não aumentam a quantidade de vendas.</div>{preview.length>0&&<><div className="preview-head"><strong>Prévia de importação</strong><span>{preview.length} registros encontrados</span></div><div className="table-wrap"><table><thead><tr><th>DATA</th><th>VENDEDORA</th><th>FATURAMENTO</th><th>VENDAS</th></tr></thead><tbody>{preview.slice(0,10).map((r,i)=><tr key={i}><td>{r.data}</td><td>{r.vendedora}</td><td>{exactMoney(Number(r.valor))}</td><td>{r.vendas}</td></tr>)}</tbody></table></div><button className="btn primary" disabled={saving} onClick={importCsv}>{saving?'Importando...':'Confirmar importação'}<ChevronRight size={16}/></button></>}</div>}
@@ -616,6 +643,8 @@ export default function App(){
   <Route path="/viewer/board" element={<Guard role="viewer"><Dashboard data={data}/></Guard>}/>
    <Route path="/viewer/percentage" element={<Guard role="viewer"><Dashboard data={data} mode="percent"/></Guard>}/>
    <Route path="/admin/percentage" element={<Guard role="admin"><Dashboard data={data} mode="percent" admin/></Guard>}/>
+   <Route path="/viewer/sectors" element={<Guard role="viewer"><Dashboard data={data} mode="sectors"/></Guard>}/>
+   <Route path="/admin/sectors" element={<Guard role="admin"><Dashboard data={data} mode="sectors" admin/></Guard>}/>
   <Route path="/admin" element={<Guard role="admin"><Admin/></Guard>}/>
   <Route path="*" element={<Navigate to="/" replace/>}/>
  </Routes>

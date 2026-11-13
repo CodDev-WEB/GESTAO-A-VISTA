@@ -118,7 +118,7 @@
 .tv-ranking table{width:100%;border-collapse:collapse;table-layout:fixed}
 .tv-ranking th{font-size:1.9em;font-weight:700;letter-spacing:0;color:var(--tv-turquoise-ink);background:var(--tv-turquoise-soft);text-align:left;padding:.53em .63em;white-space:nowrap}
 .tv-ranking th:first-child{border-radius:.53em 0 0 .53em;width:3.2em}
-.tv-ranking th:nth-child(3){width:8.2em}
+.tv-ranking th:nth-child(3){width:7.8em}
 .tv-ranking th:nth-child(4){width:4.2em}
 .tv-ranking th:nth-child(5){width:7.4em}
 .tv-ranking th:last-child{border-radius:0 .53em .53em 0}
@@ -132,7 +132,7 @@
 .tv-seller{display:flex;align-items:center;gap:.55em;min-width:0}
 .tv-seller .tv-avatar.sm{font-size:.64em}
 .tv-seller-name{font-weight:500;overflow:hidden;text-overflow:ellipsis}
-.tv-leader{flex:none;font-size:.77em;font-weight:700;background:var(--tv-yellow-soft);border:1px solid var(--tv-yellow);border-radius:.35em;padding:.06em .59em}
+.tv-leader{flex:none;font-size:.72em;font-weight:700;background:var(--tv-yellow-soft);border:1px solid var(--tv-yellow);border-radius:.35em;padding:.04em .45em}
 .tv-ranking-body{animation:tv-slide .5s ease}
 @keyframes tv-slide{from{opacity:.35;transform:translateY(.8em)}to{opacity:1;transform:none}}
 
@@ -178,9 +178,6 @@
   .tv-ranking table{min-width:72em}
 }
 
-/* Atalho entre a tela de valores e a de porcentagem */
-.tv-switch{font-size:2.1em;font-weight:700;color:var(--tv-turquoise-ink);background:var(--tv-turquoise-soft);padding:.38em .86em;border-radius:.57em;text-decoration:none;white-space:nowrap}
-.tv-switch:hover{background:#D5F0F3}
 
 /* Tela de contribuição percentual (/viewer/percentage): mesmo layout da TV */
 .tv-metric strong .tv-metric-of{font:500 .4em 'DM Sans',sans-serif;letter-spacing:0;color:var(--tv-muted)}
@@ -245,3 +242,21 @@
 .tv:has(.tv-kpis.has-split) .tv-recents{gap:.8em}
 .tv:has(.tv-kpis.has-split) .tv-recents article{padding:1em 1.6em}
 .tv:has(.tv-kpis.has-split) .tv-actions li{height:4.8em}
+
+/* Seletor das três telas do painel: R$ · % · Setores */
+.tv-views{display:flex;gap:.2em;padding:.4em;background:var(--tv-turquoise-soft);border-radius:1.2em;flex:none}
+.tv-views a{font-size:2.1em;font-weight:700;color:var(--tv-turquoise-ink);text-decoration:none;padding:.38em .7em;border-radius:.43em;white-space:nowrap}
+.tv-views a[aria-current="page"]{background:var(--tv-white);color:var(--tv-navy)}
+
+/* Terceira tela: ranking por setor */
+.tv-body-sectors{grid-template-columns:1fr 1.3fr .95fr}
+.tv-sector-stack{display:flex;flex-direction:column;gap:2.4em;min-height:0;min-width:0}
+.tv-sector-stack>.tv-panel{min-height:0}
+.tv-sector-rank .tv-panel-head{margin-bottom:1.2em}
+.tv-sector-rank th:first-child{width:3.2em}
+.tv-sector-rank th:nth-child(n+3){width:5.2em;text-align:right}
+.tv-sector-rank th:last-child{width:4.4em}
+.tv-sector-rank table.has-ticket th:nth-child(3){width:5.9em}
+.tv-sector-rank td{height:2.4em}
+.tv-sector-rank tr.is-leader td{background:var(--tv-yellow-soft)}
+.tv-sector-rank .tv-seller-text small .tv-tier{font-size:.92em}

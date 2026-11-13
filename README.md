@@ -144,3 +144,12 @@ Na tela de %:
 ### Migração do plano
 
 Execute no SQL Editor do Supabase o arquivo `supabase/migrations/20261112020000_goal_plan.sql`. Ele cria a tabela `goal_weeks`, adiciona bonificação e aumento por setor à tabela `goals` e já cadastra o plano de novembro de 2026. É seguro executar mais de uma vez.
+
+## Ranking por setor (terceira tela)
+
+Rotas: `/viewer/sectors` (TV) e `/admin/sectors` (admin). Mesma base da tela de %: filtros Diário, Semanal, Mensal e Período, meta do período e os três setores no topo, e a coluna de boas ações e reconhecimentos.
+
+- Um ranking para cada setor: **Salão** (coluna larga), **Digital** e **Checkout** (empilhados).
+- Em cada ranking: posição, nome, nível (Meta, Super, Diamante), % da meta individual e vendas; no Checkout, também o ticket médio de cada pessoa. A líder de cada setor fica destacada.
+- O seletor **R$ · % · Setores** no cabeçalho alterna entre as três telas.
+- Na TV, os nomes aparecem só com iniciais maiúsculas ("EDILAINE  CARDOSO" → "Edilaine Cardoso"); o cadastro não muda.
