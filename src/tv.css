@@ -194,9 +194,6 @@
 .tv-percent-cell strong{width:4.6em;text-align:right;font-weight:700}
 
 /* Destaque discreto para as três últimas posições do ranking de vendas. */
-.tv-ranking tr.tv-bottom-three td{background:#FFF0EF;color:#8E2A23;border-bottom-color:#F5D6D3}
-.tv-ranking tr.tv-bottom-three .tv-pos{color:#A9443D}
-.tv-ranking tr.tv-bottom-three .tv-avatar{filter:saturate(.78)}
 .seller-sales-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:9px!important;min-width:220px;font-size:10px!important;color:#526171!important}
 .seller-sales-toggle input{width:16px!important;height:16px;accent-color:#49C3D0}
 .sales-link-on,.sales-link-off{margin-left:auto;border:0;border-radius:7px;padding:7px 10px;font-size:9px;font-weight:800;white-space:nowrap;cursor:pointer}
@@ -226,7 +223,6 @@
 .tv-seller-text{display:flex;flex-direction:column;min-width:0;line-height:1.15}
 .tv-seller-text small{font-size:.66em;color:var(--tv-muted);display:flex;align-items:center;gap:.5em}
 .tv-seller-text small .tv-tier{font-size:.92em;padding:0 .5em}
-.tv-bottom-three .tv-seller-text small{color:#A9443D}
 
 /* TV com valores: faturamento por setor abaixo dos indicadores */
 .tv-kpis.has-split{height:24em}
