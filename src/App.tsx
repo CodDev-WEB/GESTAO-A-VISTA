@@ -17,6 +17,7 @@ type Sector = 'salao'|'digital'|'checkout'
 type Seller = { id:string; full_name:string; email:string|null; photo_url:string|null; active:boolean; can_sell?:boolean; sector?:Sector|null }
 type SectorGoal = { id:string; sector:Sector; week_start:string; target:number }
 type Sale = { id:string; seller_id:string; sale_date:string; revenue:number; sales_count:number; gross_revenue?:number; refund_amount?:number }
+type RecentSale = { at:string; employee_id:string; name:string; value:number }
 type Recognition = { id:string; seller_id:string; stars:number; kind:string; title:string; description:string; recognized_at:string }
 type Goal = { month:string; monthly_target:number; daily_target:number; bonus_meta?:number; bonus_super?:number; bonus_diamante?:number; growth_salao?:number|null; growth_digital?:number|null; growth_checkout?:number|null }
 // Semana do plano de meta comercial (datas próprias, ex.: 01 a 08).
@@ -125,7 +126,7 @@ function useSession(){
  return {user,profile,loading,profileError}
 }
 function useData(){
- const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[sectorGoals,setSectorGoals]=useState<SectorGoal[]>([]),[goalWeeks,setGoalWeeks]=useState<GoalWeek[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date()),[erpSyncedAt,setErpSyncedAt]=useState<Date|null>(null)
+ const [sellers,setSellers]=useState<Seller[]>(hasSupabase?[]:demoSellers),[sales,setSales]=useState<Sale[]>(hasSupabase?[]:demoSales),[recognitions,setRecognitions]=useState<Recognition[]>(hasSupabase?[]:demoRecognitions),[goals,setGoals]=useState<Goal[]>(hasSupabase?[]:[defaultGoal]),[sectorGoals,setSectorGoals]=useState<SectorGoal[]>([]),[goalWeeks,setGoalWeeks]=useState<GoalWeek[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[updatedAt,setUpdatedAt]=useState<Date|null>(hasSupabase?null:new Date()),[erpSyncedAt,setErpSyncedAt]=useState<Date|null>(null),[recentSales,setRecentSales]=useState<RecentSale[]>([])
  const load=useCallback(async()=>{
   const client=supabase
   if(!client)return
@@ -154,6 +155,9 @@ function useData(){
    // Horário da última sincronização do ERP publicada no ranking (null antes da migração ou com a publicação desligada).
    const erp=await client.rpc('erp_last_sync').then(r=>r.error||!r.data?null:new Date(String(r.data)),()=>null)
    setErpSyncedAt(erp)
+   // Últimas vendas do ERP para o rodapé da TV de valores ([] antes da migração ou com a publicação desligada).
+   const recent=await client.rpc('erp_recent_sales').then(r=>!r.error&&Array.isArray(r.data)?r.data as RecentSale[]:[],()=>[] as RecentSale[])
+   setRecentSales(recent)
    setSellers(a as unknown as Seller[]);setSales(b as unknown as Sale[]);setRecognitions(c as unknown as Recognition[]);setGoals(d as unknown as Goal[]);setSectorGoals(e as unknown as SectorGoal[]);setGoalWeeks((f as unknown as GoalWeek[]).map(w=>normalizeWeek(w)));setUpdatedAt(new Date())
   }catch(e){
    setError(e instanceof Error?e.message:'Não foi possível carregar os dados do Supabase.')
@@ -176,7 +180,7 @@ function useData(){
   document.addEventListener('visibilitychange',refresh)
   return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh)}
  },[load])
- return {sellers,sales,recognitions,goals,sectorGoals,goalWeeks,setSellers,setSales,setRecognitions,setGoals,setSectorGoals,setGoalWeeks,load,busy,error,updatedAt,erpSyncedAt}
+ return {sellers,sales,recognitions,goals,sectorGoals,goalWeeks,setSellers,setSales,setRecognitions,setGoals,setSectorGoals,setGoalWeeks,load,busy,error,updatedAt,erpSyncedAt,recentSales}
 }
 
 function Avatar({seller,size='md',index=0}:{seller:Seller;size?:'sm'|'md'|'lg'|'xl';index?:number}){
@@ -296,6 +300,23 @@ function RecognitionReel({items,render}:{items:Recognition[];render:(r:Recogniti
  // Três cópias garantem que a área fique sempre cheia enquanto a lista volta ao início.
  const list=moving?[...items,...items,...items]:items
  return <div className={'tv-reel'+(moving?' is-moving':'')} ref={box}><div className="tv-reel-track" ref={track}>{list.map((r,i)=><article key={r.id+'-'+i} aria-hidden={i>=items.length?true:undefined}>{render(r)}</article>)}</div></div>
+}
+// Rodapé da TV de valores: últimas vendas passando da esquerda para a direita e sumindo num degradê.
+function saleTime(at:string){
+ const m=at.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/)||at.match(/^(\d{2})\/(\d{2})\/(\d{4})[T ](\d{2}):(\d{2})/)
+ if(!m)return ''
+ const iso=m[1].length===4?m[1]+'-'+m[2]+'-'+m[3]:m[3]+'-'+m[2]+'-'+m[1]
+ return (iso===today()?'':iso.slice(8,10)+'/'+iso.slice(5,7)+' ')+m[4]+':'+m[5]
+}
+function SalesTicker({sales}:{sales:RecentSale[]}){
+ const item=(s:RecentSale,i:number,hidden:boolean)=><span className="tv-ticker-item" key={i} aria-hidden={hidden||undefined}><i aria-hidden="true"/><b>{displayName(s.name)}</b><strong>{exactMoney(s.value)}</strong><small>{saleTime(s.at)}</small></span>
+ // Cada metade da faixa tem ao menos 6 itens (repetindo a lista) para cobrir a largura toda;
+ // a faixa anda metade do próprio tamanho e recomeça sem salto.
+ const half=Array.from({length:Math.ceil(6/sales.length)},()=>sales).flat()
+ return <footer className="tv-ticker" aria-label="Últimas vendas registradas">
+  <span className="tv-ticker-label">Últimas vendas</span>
+  <div className="tv-ticker-lane"><div className="tv-ticker-track" style={{animationDuration:half.length*7+'s'}}>{[...half,...half].map((s,i)=>item(s,i,i>=sales.length))}</div></div>
+ </footer>
 }
 function useSlidingWindow(length:number,size:number,interval:number,resetKey:string){
  const maxStart=Math.max(0,length-size)
@@ -511,6 +532,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     </div>
    </div>
   </section>
+  {mode==='values'&&data.recentSales.length>0&&<SalesTicker sales={data.recentSales}/>}
  </div>
 }
 

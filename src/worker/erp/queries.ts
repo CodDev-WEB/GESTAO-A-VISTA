@@ -124,6 +124,37 @@ SELECT COALESCE(v.idfunc, dv.idfunc) AS idpessoafuncionario,
   return sql
 }
 
+/**
+ * Últimas vendas (por documento e funcionário), para o rodapé da TV.
+ * Mesmos critérios de venda da consulta principal, sem filtrar setor ou ranking (inclui a gerência).
+ * Busca nos últimos 7 dias para sempre ter o que mostrar, mesmo no começo do dia.
+ */
+export function buildRecentSalesQuery(today: string, companyId: number): string {
+  if (!isIsoDate(today)) throw new RangeError('Data inválida.')
+  if (!Number.isInteger(companyId) || companyId <= 0) throw new RangeError('Empresa inválida.')
+  const sql = `
+SELECT d._iddocumento AS iddocumento,
+       d.datahora AS datahora,
+       dm.idpessoafuncionario AS idpessoafuncionario,
+       COALESCE(p.nome, 'NENHUM') AS nome,
+       SUM(dm.valtotalliquido) AS valor
+  FROM documento d
+  JOIN documento_mercadoria dm ON (dm._iddocumento = d._iddocumento)
+  LEFT JOIN pessoa p ON (p._idpessoa = dm.idpessoafuncionario)
+ WHERE d.idempresa = ${companyId}
+   AND d.tipomovimento = 'S'
+   AND dm.idpessoafuncionario > 0
+   AND d.datahora >= '${addDays(today, -6)}'
+   AND d.datahora < '${addDays(today, 1)}'
+   AND d.tipomovimentofinanceiro = 'R'
+   AND d.status = 'E'
+ GROUP BY d._iddocumento, d.datahora, dm.idpessoafuncionario, p.nome
+ ORDER BY d.datahora DESC, d._iddocumento DESC`.trim()
+  // Sem LIMIT no SQL: a quantidade vem do parâmetro limit da API (5).
+  assertReadOnly(sql)
+  return sql
+}
+
 /** Defesa extra: a consulta montada tem de ser um único SELECT/WITH, sem comandos de escrita. */
 export function assertReadOnly(sql: string) {
   const s = sql.replace(/'[^']*'/g, "''")

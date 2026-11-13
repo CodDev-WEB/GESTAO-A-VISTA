@@ -277,3 +277,17 @@
 .tv-reel-track{display:flex;flex-direction:column;gap:1em;will-change:transform}
 .tv-reel:not(.is-moving) .tv-reel-track{justify-content:center;height:100%}
 .tv-reel-track article{background:var(--tv-white);border-radius:1.2em;padding:1.2em 1.6em;display:flex;flex-direction:column;gap:.4em;transform-origin:center;will-change:transform,opacity}
+
+/* Rodapé da TV de valores: últimas vendas da esquerda para a direita, sumindo num degradê */
+.tv:has(.tv-ticker){padding-bottom:2em}
+.tv-ticker{flex:none;height:4.4em;display:flex;align-items:center;gap:2em;background:var(--tv-turquoise-soft);border-radius:1.2em;padding:0 0 0 2.2em;overflow:hidden}
+.tv-ticker-label{flex:none;font:800 1.8em Manrope,sans-serif;color:var(--tv-turquoise-ink);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.tv-ticker-lane{position:relative;flex:1;min-width:0;height:100%;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 8%,#000 62%,transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 8%,#000 62%,transparent 100%)}
+.tv-ticker-track{position:absolute;top:0;left:0;height:100%;display:flex;align-items:center;width:max-content;animation:tv-ticker-right linear infinite;will-change:transform}
+.tv-ticker-item{display:inline-flex;align-items:baseline;gap:.9em;padding:0 3.2em 0 0;white-space:nowrap}
+.tv-ticker-item i{align-self:center;width:.9em;height:.9em;border-radius:50%;background:var(--tv-yellow);flex:none}
+.tv-ticker-item b{font-size:2.1em;font-weight:700;color:var(--tv-navy)}
+.tv-ticker-item strong{font:800 2.2em Manrope,sans-serif;color:var(--tv-turquoise-text)}
+.tv-ticker-item small{font-size:1.7em;color:var(--tv-muted)}
+@keyframes tv-ticker-right{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){.tv-ticker-track{animation:none}}
