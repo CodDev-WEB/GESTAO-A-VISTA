@@ -10,7 +10,7 @@
 import type { Env } from '../types'
 import { Supabase, eq, type Row } from '../supabase/client'
 import { ErpClient, ErpError, type RawRow } from './client'
-import { addDays, buildSalesQuery, isIsoDate, splitRange, validateRange, type DateRange } from './queries'
+import { addDays, buildRecentSalesQuery, buildSalesQuery, isIsoDate, splitRange, validateRange, type DateRange } from './queries'
 
 export const INTEGRATION_ID = 'santarem'
 export const TIME_ZONE = 'America/Belem'
@@ -99,6 +99,25 @@ function findDuplicates(sales: ErpSale[]): string[] {
   const seen = new Set<string>(), dup: string[] = []
   for (const s of sales) { const key = s.erp_employee_id + '|' + s.sale_date; if (seen.has(key)) dup.push(`Funcionário ${s.erp_employee_id} repetido em ${s.sale_date} (paginação inconsistente)`); seen.add(key) }
   return dup
+}
+
+export type RecentSale = { at: string; employee_id: string; name: string; value: number }
+
+/** Lê as últimas vendas e guarda a lista curta para o rodapé da TV. Falha aqui não afeta a sincronização. */
+export async function refreshRecentSales(db: Supabase, erp: ErpClient, companyId: number, mappings: Map<string, string>): Promise<number> {
+  const { rows } = await erp.page(buildRecentSalesQuery(todayIn(), companyId), 0, 5)
+  const sellerIds = [...new Set(rows.map(r => mappings.get(String(pick(r, 'idpessoafuncionario') ?? '').replace(/\.0+$/, ''))).filter(Boolean))] as string[]
+  const names = new Map<string, string>()
+  if (sellerIds.length) for (const s of await db.select<{ id: string; full_name: string }>('sellers', `id=in.(${sellerIds.map(eq).join(',')})&select=id,full_name`)) names.set(s.id, s.full_name)
+  const list: RecentSale[] = rows.slice(0, 5).map(r => {
+    const id = String(pick(r, 'idpessoafuncionario') ?? '').trim().replace(/\.0+$/, '')
+    const at = String(pick(r, 'datahora') ?? '').trim()
+    if (!/^\d+$/.test(id) || !/^\d{4}-\d{2}-\d{2}|^\d{2}\/\d{2}\/\d{4}/.test(at)) throw new Error('Última venda com dados inválidos.')
+    const seller = mappings.get(id)
+    return { at: at.slice(0, 19), employee_id: id, name: (seller && names.get(seller)) || String(pick(r, 'nome') ?? '').trim() || 'NENHUM', value: round2(toNumber(pick(r, 'valor'), 'valor')) }
+  })
+  await db.update('erp_integrations', `id=eq.${INTEGRATION_ID}`, { recent_sales: list, recent_sales_at: new Date().toISOString() })
+  return list.length
 }
 
 export async function loadIntegration(db: Supabase): Promise<Integration> {
@@ -214,6 +233,12 @@ export async function runSync(env: Env, opts: SyncOptions): Promise<SyncResult> 
         result.published = await publishRange(db, { start: range.start, end: range.end }, integration.publish_from, mappings)
       } else details.publish = 'Publicação desligada: dados ficaram só no espelho do ERP.'
       result.message = `${result.staged} registro(s) do ERP gravado(s); ${result.unmatched} sem vínculo; ${result.published} publicado(s) no ranking.`
+      // Rodapé da TV: últimas vendas (só nas sincronizações que incluem hoje).
+      if (range.end >= todayIn()) {
+        try { details.recent_sales = await refreshRecentSales(db, erp, integration.company_id, mappings) }
+        catch (e) { details.recent_sales_error = e instanceof Error ? e.message : String(e) }
+        result.requests = erp.requests
+      }
     }
 
     const finished = new Date().toISOString()

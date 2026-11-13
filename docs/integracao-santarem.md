@@ -100,6 +100,14 @@ Para voltar atrás: **Desligar publicação**. Os rankings param de receber o ER
 
 O navegador só envia datas. A consulta SQL é montada no Worker, e as datas são validadas: formato, data real, fim ≥ início e até 92 dias.
 
+## Rodapé "Últimas vendas" (TV de valores)
+
+A cada sincronização que inclui o dia de hoje, o Worker faz uma consulta curta ao ERP com as **5 vendas mais recentes**: documento, horário, funcionário e valor líquido. Os critérios de venda são os mesmos do ranking, e a lista inclui quem não participa do ranking, como a gerência.
+
+A lista fica em `erp_integrations.recent_sales`. A TV lê pela função `erp_recent_sales()`, que só devolve nomes, valores e horários, e só com a publicação ativa. Ela é atualizada a cada 5 minutos, junto com a sincronização.
+
+Migração: `supabase/migrations/20261113200000_erp_recent_sales.sql`.
+
 ## Agendamento (fuso America/Belem)
 
 - **A cada 5 minutos:** ontem e hoje.
