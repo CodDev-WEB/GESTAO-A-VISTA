@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Navigate, Route, Routes, Link, useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
@@ -257,6 +257,46 @@ function TvAvatar({seller,className}:{seller:Seller;className:string}){
 }
 function TvStar(){return <svg className="tv-star" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}
 // Janela circular: percorre até o fim e reinicia no primeiro grupo.
+// Rolagem infinita vertical: o card do centro fica em destaque; subindo, os cards diminuem e somem num degradê.
+function RecognitionReel({items,render}:{items:Recognition[];render:(r:Recognition)=>ReactNode}){
+ const box=useRef<HTMLDivElement>(null),track=useRef<HTMLDivElement>(null)
+ const moving=items.length>1
+ useEffect(()=>{
+  const el=box.current,tr=track.current
+  if(!el||!tr)return
+  const reduced=prefersReducedMotion()
+  let offset=0,last=performance.now(),raf=0
+  const paint=()=>{
+   const h=el.clientHeight,mid=h/2
+   const cards=[...tr.children] as HTMLElement[]
+   const setH=moving?(cards[items.length]?.offsetTop??0)-(cards[0]?.offsetTop??0):0
+   if(setH>0)offset%=setH
+   tr.style.transform=`translate3d(0,${-offset}px,0)`
+   for(const c of cards){
+    const center=c.offsetTop-offset+c.offsetHeight/2
+    const d=Math.max(-1.2,Math.min(1.2,(center-mid)/mid))
+    // acima do centro diminui mais; abaixo, cresce suavemente até o destaque
+    const scale=d<0?1+0.22*d:1-0.08*d
+    const fade=Math.max(0,Math.min(1,1.25-Math.abs(d)*(d<0?1.15:0.9)))
+    c.style.transform=`scale(${Math.max(0.7,scale).toFixed(3)})`
+    c.style.opacity=fade.toFixed(3)
+   }
+  }
+  const tick=(now:number)=>{
+   const dt=Math.min(0.1,(now-last)/1000);last=now
+   offset+=el.clientHeight/16*dt // atravessa a área em ~16 s
+   paint();raf=requestAnimationFrame(tick)
+  }
+  paint()
+  if(moving&&!reduced)raf=requestAnimationFrame(t=>{last=t;tick(t)})
+  const onResize=()=>paint()
+  window.addEventListener('resize',onResize)
+  return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',onResize)}
+ },[items,moving])
+ // Três cópias garantem que a área fique sempre cheia enquanto a lista volta ao início.
+ const list=moving?[...items,...items,...items]:items
+ return <div className={'tv-reel'+(moving?' is-moving':'')} ref={box}><div className="tv-reel-track" ref={track}>{list.map((r,i)=><article key={r.id+'-'+i} aria-hidden={i>=items.length?true:undefined}>{render(r)}</article>)}</div></div>
+}
 function useSlidingWindow(length:number,size:number,interval:number,resetKey:string){
  const maxStart=Math.max(0,length-size)
  const [step,setStep]=useState(0)
@@ -342,7 +382,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
   const entries=data.recognitions.filter(r=>r.seller_id===s.id&&r.stars>0)
   return {seller:s,stars:entries.reduce((n,r)=>n+Number(r.stars||0),0),actions:entries.length}
  }).filter(r=>r.actions>0).sort((a,b)=>b.stars-a.stars||b.actions-a.actions||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR')),[data.sellers,data.recognitions])
- const recentRecognitions=useMemo(()=>[...data.recognitions].filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at)).slice(0,3),[data.recognitions])
+ const recentRecognitions=useMemo(()=>[...data.recognitions].filter(r=>r.stars>0).sort((a,b)=>b.recognized_at.localeCompare(a.recognized_at)).slice(0,12),[data.recognitions])
  const sellerById=useMemo(()=>new Map(data.sellers.map(s=>[s.id,s])),[data.sellers])
  const ranking=useSlidingWindow(displayRows.length,8,4000,period+date+endDate)
  const actions=useSlidingWindow(actionRanking.length,4,4000,'actions')
@@ -463,10 +503,10 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     </div>
     <div className="tv-recents">
      <h2>Reconhecimentos recentes</h2>
-     {recentRecognitions.map(rec=><article key={rec.id}>
+     {recentRecognitions.length>0&&<RecognitionReel items={recentRecognitions} render={rec=><>
       <div className="tv-recent-head"><strong>{displayName(sellerById.get(rec.seller_id)?.full_name||'Colaboradora')}</strong><span className="tv-recent-title">{rec.title}</span><span className="tv-stars" aria-label={rec.stars+(rec.stars===1?' estrela':' estrelas')}><TvStar/>{rec.stars}</span></div>
       <p>{rec.description}</p>
-     </article>)}
+     </>}/>}
      {recentRecognitions.length===0&&<p className="tv-empty tv-empty-card">Os reconhecimentos aparecerão aqui com o nome, o motivo e as estrelas.</p>}
     </div>
    </div>
