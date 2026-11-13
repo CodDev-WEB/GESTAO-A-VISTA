@@ -417,12 +417,12 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     {first?<div className="tv-podium-body">
      <div className="tv-podium-first">
       <span className="tv-podium-avatar"><TvAvatar seller={first.seller} className="xl"/><b>1º</b></span>
-      <strong>{displayName(first.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(share(first),1):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{percent?money(first.revenue)+' · ':''}{first.count} {first.count===1?'venda':'vendas'}</small>
+      <strong>{displayName(first.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(share(first),1):money(first.revenue)}</span>{percent&&first.tier&&<span className={'tv-tier '+first.tier}>{tierLabel(first.tier)}</span>}<small>{first.count} {first.count===1?'venda':'vendas'}</small>
      </div>
      <div className="tv-podium-rest">
       {[second,third].map((r,i)=>r?<div className={'tv-podium-place place-'+(i+2)} key={r.seller.id}>
        <span className="tv-podium-avatar"><TvAvatar seller={r.seller} className="lg"/><b>{i+2}º</b></span>
-       <div className={percent?'is-stacked':undefined}><strong>{displayName(r.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(share(r),1):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{percent?money(r.revenue)+' · ':''}{r.count} {r.count===1?'venda':'vendas'}</small></div>
+       <div className={percent?'is-stacked':undefined}><strong>{displayName(r.seller.full_name)}</strong><span className="tv-podium-value">{percent?pct(share(r),1):money(r.revenue)}{percent&&r.tier&&<span className={'tv-tier '+r.tier}>{tierLabel(r.tier)}</span>}</span><small>{r.count} {r.count===1?'venda':'vendas'}</small></div>
       </div>:null)}
      </div>
     </div>:<p className="tv-empty">{emptySales}</p>}
