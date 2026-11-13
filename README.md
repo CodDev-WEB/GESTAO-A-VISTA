@@ -124,7 +124,7 @@ Execute no SQL Editor o arquivo `supabase/migrations/20261112000000_sector_goals
 As metas seguem o **Plano de Meta Comercial** do mês, cadastrado em **Administração → Metas**:
 
 - **Semanas com datas próprias**, como no plano impresso (ex.: 01 a 08, 09 a 15, 16 a 22 e 23 a 30).
-- Para cada semana: **meta da loja** e divisão em **venda salão** e **venda digital** (R$); **metas dos setores**: Salão em quantidade de vendas, Digital em conversões e Checkout em **ticket médio**; e **metas individuais por pessoa** em R$ para cada setor, com os níveis **Meta**, **Super** e **Diamante**.
+- Para cada semana: **meta da loja** e divisão em **venda salão** e **venda digital** (R$); **metas dos setores**: Salão em quantidade de vendas, Digital em conversões e Checkout em **ticket médio** (indicador); e as faixas **Meta**, **Super** e **Diamante** em R$: por pessoa no Salão e no Digital, e **da equipe** no Checkout.
 - No mês: meta mensal da loja, **bonificação** por nível (Meta, Super, Diamante) e **aumento percentual por setor** (registrado como referência).
 
 Filtros (TV com valores e tela de %):
@@ -138,7 +138,9 @@ Filtros (TV com valores e tela de %):
 Na tela de %:
 
 - A meta de cada filtro (Diário, Semanal, Mensal ou Período) é a soma das semanas do plano, proporcional aos dias de cada semana que caem no período. O ticket médio do Checkout é a média das semanas, ponderada pelos dias.
-- O ranking mostra o **% da meta individual** (faturamento da pessoa ÷ meta individual do setor), o **% da cota do setor** (Salão e Digital: vendas da pessoa ÷ meta do setor dividida pelo número de pessoas; Checkout: ticket da pessoa ÷ ticket meta) e o **nível** alcançado. Os valores das bonificações aparecem só no admin.
+- O ranking mostra o **% da meta individual** (faturamento da pessoa ÷ meta individual do setor), o **% da cota do setor** (Salão e Digital: vendas da pessoa ÷ meta do setor dividida pelo número de pessoas) e o **nível** alcançado. Os valores das bonificações aparecem só no admin.
+- **Checkout é uma equipe com resultado único.** O faturamento somado das vendedoras do Checkout é comparado com Meta, Super e Diamante da equipe. Se a equipe bate um nível, todas recebem esse nível, e o valor da bonificação é dividido pelo número de vendedoras do Checkout. O % de cada pessoa é o faturamento dela ÷ (meta da equipe ÷ número de vendedoras). O ticket médio continua aparecendo como indicador.
+- **Situação da meta nos painéis:** o setor que atinge 100% mostra **Meta batida** na hora (com o nível, no Checkout). Os setores que não chegaram a 100% mostram **Faltam X%** enquanto o período está aberto e **Não bateu** quando o período (semana, mês ou dia) termina. Na TV de valores, a faixa de faturamento por setor compara com as metas em R$ do plano (venda salão, venda digital e meta da equipe do Checkout).
 - Sem plano cadastrado para o período, a tela usa as metas semanais por setor do modelo anterior.
 
 ### Migração do plano

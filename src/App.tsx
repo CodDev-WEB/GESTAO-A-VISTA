@@ -216,7 +216,7 @@ const planFieldGroups:[string,[keyof GoalWeek,string][]][]=[
  ['Metas dos setores',[['salao_sales_target','Salão · qtd. de vendas'],['digital_conversions_target','Digital · conversões'],['checkout_ticket_target','Checkout · ticket médio (R$)']]],
  ['Vendedoras do salão · R$ por pessoa',[['salao_meta','Meta'],['salao_super','Super'],['salao_diamante','Diamante']]],
  ['Vendedoras digital · R$ por pessoa',[['digital_meta','Meta'],['digital_super','Super'],['digital_diamante','Diamante']]],
- ['Checkout · R$ por pessoa',[['checkout_meta','Meta'],['checkout_super','Super'],['checkout_diamante','Diamante']]],
+ ['Checkout · R$ da equipe (soma das vendedoras)',[['checkout_meta','Meta'],['checkout_super','Super'],['checkout_diamante','Diamante']]],
 ]
 const tierLabel=(t:Tier)=>t==='diamante'?'Diamante':t==='super'?'Super':'Meta'
 const tierOf=(value:number,t:{meta:number;super:number;diamante:number}):Tier|null=>t.meta<=0?null:value>=t.diamante&&t.diamante>0?'diamante':value>=t.super&&t.super>0?'super':value>=t.meta?'meta':null
@@ -224,16 +224,17 @@ const tierOf=(value:number,t:{meta:number;super:number;diamante:number}):Tier|nu
 // Ticket médio do Checkout não se soma: vira a média das semanas, ponderada pelos dias.
 function planForWindow(weeks:GoalWeek[],start:string,end:string){
  const individual:Record<Sector,{meta:number;super:number;diamante:number}>={salao:{meta:0,super:0,diamante:0},digital:{meta:0,super:0,diamante:0},checkout:{meta:0,super:0,diamante:0}}
- let covered=false,salao=0,digital=0,ticketSum=0,ticketDays=0,store=0
+ let covered=false,salao=0,digital=0,ticketSum=0,ticketDays=0,store=0,salaoRevenue=0,digitalRevenue=0
  for(const w of weeks){
   const days=overlapDays(w.start_date,w.end_date,start,end);if(!days)continue
   covered=true
   const f=days/spanDays(w.start_date,w.end_date)
-  store+=w.store_target*f;salao+=w.salao_sales_target*f;digital+=w.digital_conversions_target*f
+  store+=w.store_target*f;salao+=w.salao_sales_target*f;digital+=w.digital_conversions_target*f;salaoRevenue+=w.salao_revenue_target*f;digitalRevenue+=w.digital_revenue_target*f
   if(w.checkout_ticket_target>0){ticketSum+=w.checkout_ticket_target*days;ticketDays+=days}
   for(const sec of sectors){individual[sec].meta+=w[`${sec}_meta`]*f;individual[sec].super+=w[`${sec}_super`]*f;individual[sec].diamante+=w[`${sec}_diamante`]*f}
  }
- return {covered,store,individual,sector:{salao,digital,checkout:ticketDays?ticketSum/ticketDays:0} as Record<Sector,number>}
+ // Metas de faturamento por setor: Salão e Digital do plano; Checkout é a meta da equipe (nível Meta).
+ return {covered,store,individual,sector:{salao,digital,checkout:ticketDays?ticketSum/ticketDays:0} as Record<Sector,number>,revenue:{salao:salaoRevenue,digital:digitalRevenue,checkout:individual.checkout.meta} as Record<Sector,number>}
 }
 const salesIn=(sales:Sale[],ids:string[],start:string,end:string)=>sales.filter(x=>ids.includes(x.seller_id)&&x.sale_date>=start&&x.sale_date<=end)
 const sumRevenue=(rows:Sale[])=>rows.reduce((n,x)=>n+Number(x.revenue),0)
@@ -285,25 +286,34 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
   const members=data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector===sector)
   const ids=members.map(s=>s.id),inWindow=salesIn(data.sales,ids,sectorWindow[0],sectorWindow[1])
   const target=plan.covered?plan.sector[sector]:data.sectorGoals.filter(g=>g.sector===sector).reduce((sum,g)=>sum+Number(g.target)*weekOverlapDays(g.week_start,sectorWindow)/7,0)
-  // Com o plano, o Checkout é medido pelo ticket médio; sem o plano, pelo faturamento (regra antiga).
-  const actual=plan.covered?(sector==='checkout'?ticketOf(inWindow):sumCount(inWindow)):sectorActual(sector,data.sales,ids,sectorWindow[0],sectorWindow[1])
-  const ticketMode=plan.covered&&sector==='checkout'
-  return {sector,members,target,actual,ticketMode,percent:target>0?actual/target*100:0,quotaTarget:ticketMode?target:members.length?target/members.length:0}
+  // Checkout trabalha como equipe: o resultado é a soma das vendedoras contra Meta, Super e Diamante da equipe.
+  // Cada uma tem como parte a meta da equipe ÷ número de vendedoras. O ticket médio segue como indicador.
+  const teamMode=plan.covered&&sector==='checkout'
+  if(teamMode){
+   const tiers=plan.individual.checkout,teamTarget=tiers.meta,teamRevenue=sumRevenue(inWindow),ticketTarget=target,ticket=ticketOf(inWindow)
+   return {sector,members,target:teamTarget,actual:teamRevenue,teamMode,teamTier:tierOf(teamRevenue,tiers),ticketPercent:ticketTarget>0?ticket/ticketTarget*100:null,percent:teamTarget>0?teamRevenue/teamTarget*100:0,quotaTarget:members.length?teamTarget/members.length:0}
+  }
+  const actual=plan.covered?sumCount(inWindow):sectorActual(sector,data.sales,ids,sectorWindow[0],sectorWindow[1])
+  return {sector,members,target,actual,teamMode,teamTier:null as Tier|null,ticketPercent:null as number|null,percent:target>0?actual/target*100:0,quotaTarget:members.length?target/members.length:0}
  }),[data.sellers,data.sales,data.sectorGoals,plan,sectorWindow[0],sectorWindow[1]])
  const percentRows=useMemo(()=>{
   const bySector=new Map<string,typeof sectorStats[number]>()
   for(const st of sectorStats)for(const seller of st.members)bySector.set(seller.id,st)
   return rows.filter(r=>bySector.has(r.seller.id)).map(r=>{
    const st=bySector.get(r.seller.id)!,own=salesIn(data.sales,[r.seller.id],sectorWindow[0],sectorWindow[1])
-   const metricActual=st.ticketMode?ticketOf(own):plan.covered?sumCount(own):sectorActual(st.sector,data.sales,[r.seller.id],sectorWindow[0],sectorWindow[1])
+   const metricActual=st.teamMode?sumRevenue(own):plan.covered?sumCount(own):sectorActual(st.sector,data.sales,[r.seller.id],sectorWindow[0],sectorWindow[1])
    const quota=st.quotaTarget>0?metricActual/st.quotaTarget*100:0
-   const goal=plan.covered?plan.individual[st.sector]:null
-   const individual=goal&&goal.meta>0?sumRevenue(own)/goal.meta*100:null
-   const tier=goal?tierOf(sumRevenue(own),goal):null
+   const goal=plan.covered&&!st.teamMode?plan.individual[st.sector]:null
+   // No Checkout, o % individual é a parte da pessoa na meta da equipe e o nível é o da equipe.
+   const individual=st.teamMode?quota:goal&&goal.meta>0?sumRevenue(own)/goal.meta*100:null
+   const tier=st.teamMode?st.teamTier:goal?tierOf(sumRevenue(own),goal):null
    return {...r,sector:st.sector,metricActual,quota,individual,tier,contribution:individual??quota}
   }).sort((a,b)=>b.contribution-a.contribution||b.count-a.count||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
  },[rows,sectorStats,plan,data.sales,sectorWindow[0],sectorWindow[1]])
  const hasIndividual=percent&&percentRows.some(r=>r.individual!==null)
+ const periodEnded=sectorWindow[1]<today()
+ const goalState=(value:number,target:number):'none'|'done'|'missed'|'open'=>target<=0?'none':value>=target?'done':periodEnded?'missed':'open'
+ const flag=(state:string,tier?:Tier|null,short=false)=>state==='done'?<em className="tv-flag done" title="Meta batida">{short&&tier&&tier!=='meta'?tierLabel(tier):'Meta batida'}{!short&&tier&&tier!=='meta'?' · '+tierLabel(tier):''}</em>:state==='missed'?<em className="tv-flag missed">Não bateu</em>:null
  const displayRows=percent?percentRows:rows
  const withoutSector=rows.length-percentRows.length
  const monthRevenue=useMemo(()=>rankRows(data.sellers,data.sales,'month',date).reduce((n,r)=>n+r.revenue,0),[data.sellers,data.sales,date])
@@ -340,7 +350,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
  const sectorRank=(sec:Sector)=>{
   const st=sectorStats.find(x=>x.sector===sec)!,list=percentRows.filter(r=>r.sector===sec),showTicket=sec==='checkout'
   return <>
-   <div className="tv-panel-head"><h2>{sectorName(sec)}</h2><span>{pct(st.percent,1)} da meta do setor · {list.length} {list.length===1?'pessoa':'pessoas'}</span></div>
+   <div className="tv-panel-head"><h2>{sectorName(sec)}{flag(goalState(st.actual,st.target))}</h2><span>{pct(st.percent,1)} da meta{st.teamMode?' da equipe':''} · {list.length} {list.length===1?'pessoa':'pessoas'}</span></div>
    {list.length?<table className={showTicket?'has-ticket':undefined}>
     <thead><tr><th scope="col">Pos.</th><th scope="col">Vendedora</th>{showTicket&&<th scope="col">Ticket</th>}<th scope="col">{hasIndividual?'% meta':'% cota'}</th><th scope="col">Vendas</th></tr></thead>
     <tbody>{list.map((r,i)=><tr key={r.seller.id} className={i===0&&r.contribution>0?'is-leader':undefined}>
@@ -376,17 +386,17 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
     <div className="tv-goal-row"><span className="tv-goal-value">{progress.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% <small>alcançados</small></span><span>Faltam <strong>{percent?pct(Math.max(0,100-progress),1):money(Math.max(0,goalTarget-goalActual))}</strong></span></div>
     <div className="tv-goal-track" role="progressbar" aria-label={goalTitle} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><div style={{width:progress+'%'}}/></div>
    </div>
-   {percent?<div className="tv-metrics">{sectorStats.map(st=><div className={st.percent>=100?'tv-metric tv-sector is-done':'tv-metric tv-sector'} key={st.sector}>
-    <span><b>{sectorName(st.sector)}</b> · {st.ticketMode?'ticket médio':sectorUnit(st.sector)}</span>
-    <strong>{pct(st.percent,1)}</strong>
+   {percent?<div className="tv-metrics">{sectorStats.map(st=>{const state=goalState(st.actual,st.target);return <div className={'tv-metric tv-sector is-'+state} key={st.sector}>
+    <span><b>{sectorName(st.sector)}</b> · {st.teamMode?'equipe':sectorUnit(st.sector)}</span>
+    <div className="tv-sector-value"><strong>{pct(st.percent,1)}</strong>{flag(state,st.teamTier,true)}</div>
     <div className="tv-sector-track" role="progressbar" aria-label={'Meta do setor '+sectorName(st.sector)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(100,st.percent))}><i style={{width:bar(st.percent)}}/></div>
-    <small>{st.target<=0?'Meta não cadastrada':st.percent>=100?'Superada em '+pct(st.percent-100,1):'Faltam '+pct(100-st.percent,1)} · {st.members.length} {st.members.length===1?'pessoa':'pessoas'}</small>
-   </div>)}</div>:<div className="tv-metrics tv-metrics-split"><div className="tv-metrics-row">
+    <small>{state==='none'?'Meta não cadastrada':state==='done'?'Superada em '+pct(st.percent-100,1):state==='missed'?'Fechou em '+pct(st.percent,1):'Faltam '+pct(100-st.percent,1)} · {st.teamMode&&st.ticketPercent!==null?'ticket '+pct(st.ticketPercent,0)+' da meta':st.members.length+(st.members.length===1?' pessoa':' pessoas')}</small>
+   </div>})}</div>:<div className="tv-metrics tv-metrics-split"><div className="tv-metrics-row">
     <div className="tv-metric"><span>Faturamento do período</span><strong>{money(periodRevenue)}</strong><small>Loja inteira {periodLabel}</small></div>
     <div className="tv-metric"><span>Ticket médio do período</span><strong>{exactMoney(periodTicket)}</strong><small>{periodCount} {periodCount===1?'venda':'vendas'} {periodLabel}</small></div>
     <div className="tv-metric"><span>Quantidade de vendas</span><strong>{periodCount}</strong><small>Vendas registradas {periodLabel}</small></div>
    </div>
-   <div className="tv-sector-split" aria-label="Faturamento por setor">{revenueBySector.map(x=><span key={x.key}><b>{x.label}</b><strong>{exactMoney(x.revenue)}</strong><small>{periodRevenue>0?pct(x.revenue/periodRevenue*100,1):'0,0%'}</small></span>)}</div>
+   <div className="tv-sector-split" aria-label="Faturamento por setor">{revenueBySector.map(x=>{const target=plan.covered&&x.key!=='none'?plan.revenue[x.key as Sector]:0,state=goalState(x.revenue,target);return <span key={x.key}><b>{x.label}</b><strong>{exactMoney(x.revenue)}</strong>{state==='done'||state==='missed'?flag(state):<small>{target>0?pct(x.revenue/target*100,1)+' da meta':periodRevenue>0?pct(x.revenue/periodRevenue*100,1):'0,0%'}</small>}</span>})}</div>
    </div>}
   </section>
 
@@ -482,9 +492,11 @@ function Admin(){
  // Bonificação por semana: nível alcançado pelo faturamento da pessoa nas datas da semana do plano.
  const bonusRows=useMemo(()=>{
   const value=(t:Tier)=>Number(t==='diamante'?goal.bonus_diamante??250:t==='super'?goal.bonus_super??140:goal.bonus_meta??70)
+  const team=data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector==='checkout').map(s=>s.id)
   return data.sellers.filter(s=>s.active&&s.can_sell!==false&&s.sector).map(s=>{
-   const sec=s.sector as Sector
-   const weeks=monthWeeks.map(w=>{const revenue=sumRevenue(salesIn(data.sales,[s.id],w.start_date,w.end_date));const tier=tierOf(revenue,{meta:w[`${sec}_meta`],super:w[`${sec}_super`],diamante:w[`${sec}_diamante`]});return {open:w.end_date>=today(),future:w.start_date>today(),revenue,tier,bonus:tier?value(tier):0}})
+   const sec=s.sector as Sector,isTeam=sec==='checkout'
+   // Checkout: nível pela soma da equipe; o valor do bônus é dividido entre as vendedoras do Checkout.
+   const weeks=monthWeeks.map(w=>{const revenue=sumRevenue(salesIn(data.sales,isTeam?team:[s.id],w.start_date,w.end_date));const tier=tierOf(revenue,{meta:w[`${sec}_meta`],super:w[`${sec}_super`],diamante:w[`${sec}_diamante`]});return {open:w.end_date>=today(),future:w.start_date>today(),revenue,tier,bonus:tier?value(tier)/(isTeam?Math.max(team.length,1):1):0}})
    return {seller:s,sector:sec,weeks,total:weeks.reduce((n,w)=>n+(w.open?0:w.bonus),0)}
   }).sort((a,b)=>b.total-a.total||a.seller.full_name.localeCompare(b.seller.full_name,'pt-BR'))
  },[data.sellers,data.sales,monthWeeks,goal.bonus_meta,goal.bonus_super,goal.bonus_diamante])
@@ -618,7 +630,7 @@ function Admin(){
  </div>
  <div className="admin-panel">
   <h2>Bonificações · {monthLabel(goal.month)}</h2>
-  <p>Nível alcançado por semana com o faturamento de cada pessoa: Meta {money(Number(goal.bonus_meta??70))}, Super {money(Number(goal.bonus_super??140))} e Diamante {money(Number(goal.bonus_diamante??250))}. Semanas em andamento ainda não entram no total.</p>
+  <p>Nível alcançado por semana com o faturamento de cada pessoa: Meta {money(Number(goal.bonus_meta??70))}, Super {money(Number(goal.bonus_super??140))} e Diamante {money(Number(goal.bonus_diamante??250))}. No Checkout, o nível é da equipe e o bônus é dividido entre as vendedoras do setor. Semanas em andamento ainda não entram no total.</p>
   {monthWeeks.length===0?<p className="plan-empty">Cadastre e salve o plano do mês para ver as bonificações.</p>:<div className="table-wrap"><table className="bonus-table"><thead><tr><th>Colaboradora</th><th>Setor</th>{monthWeeks.map(w=><th key={w.week_number}>{w.week_number}ª sem.<br/><small>{new Date(w.start_date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit'})} a {new Date(w.end_date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</small></th>)}<th>Total</th></tr></thead><tbody>{bonusRows.map(r=><tr key={r.seller.id}><td>{r.seller.full_name}</td><td>{sectorName(r.sector)}</td>{r.weeks.map((w,i)=><td key={i} className={w.future?'bonus-future':''}>{w.future?'—':w.tier?<><span className={'bonus-tier '+w.tier}>{tierLabel(w.tier)}</span> {money(w.bonus)}{w.open&&<small> parcial</small>}</>:<span className="bonus-none">{w.open?'em andamento':'sem nível'}</span>}</td>)}<td className="money-cell">{money(r.total)}</td></tr>)}</tbody></table></div>}
  </div>
  <div className="admin-panel narrow-panel"><h2>Meta mensal, bonificações e aumento por setor</h2><p>Valores do mês selecionado acima.</p><form onSubmit={saveGoal} className="stack-form">

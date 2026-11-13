@@ -231,8 +231,8 @@
 .tv-metrics.tv-metrics-split{display:flex;flex-direction:column}
 .tv-metrics-row{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .tv-metrics-split .tv-metric{padding:2.4em 3.2em}
-.tv-sector-split{display:flex;gap:1em;border-top:.2em solid var(--tv-turquoise-soft);padding:1.1em 3.2em;font-size:2em;white-space:nowrap}
-.tv-sector-split>span{flex:1;display:flex;align-items:baseline;gap:.5em;min-width:0}
+.tv-sector-split{display:flex;gap:.8em;border-top:.2em solid var(--tv-turquoise-soft);padding:1.1em 3.2em;font-size:2em;white-space:nowrap}
+.tv-sector-split>span{flex:1;display:flex;align-items:baseline;gap:.4em;min-width:0}
 .tv-sector-split b{font-weight:800}
 .tv-sector-split strong{font-variant-numeric:tabular-nums}
 .tv-sector-split small{font-size:.85em;color:var(--tv-muted)}
@@ -260,3 +260,16 @@
 .tv-sector-rank td{height:2.4em}
 .tv-sector-rank tr.is-leader td{background:var(--tv-yellow-soft)}
 .tv-sector-rank .tv-seller-text small .tv-tier{font-size:.92em}
+
+/* Situação da meta: "Meta batida" na hora; "Não bateu" quando o período termina */
+.tv-flag{display:inline-block;font-style:normal;font-weight:800;font-size:.62em;line-height:1.3;border-radius:.45em;padding:.15em .6em;margin-left:.6em;vertical-align:middle;white-space:nowrap}
+.tv-flag.done{background:var(--tv-yellow);color:var(--tv-navy)}
+.tv-flag.missed{background:var(--tv-danger-soft);color:var(--tv-danger-ink)}
+.tv-sector-value{display:flex;align-items:center;justify-content:space-between;gap:.6em;min-width:0}
+.tv-sector-value strong{flex:none}
+.tv-sector-value .tv-flag{font-size:1.7em;margin-left:0;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tv-metric.tv-sector.is-missed{background:#FDF3F1}
+.tv-metric.tv-sector.is-missed .tv-sector-track i{background:#E0A49C}
+.tv-sector-split .tv-flag{font-size:.72em;margin-left:0;padding:.15em .45em}
+.tv-panel-head h2{display:flex;align-items:center;white-space:nowrap}
+.tv-panel-head h2 .tv-flag{font-size:.55em}
