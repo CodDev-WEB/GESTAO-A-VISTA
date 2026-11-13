@@ -127,6 +127,14 @@ As metas seguem o **Plano de Meta Comercial** do mês, cadastrado em **Administr
 - Para cada semana: **meta da loja** e divisão em **venda salão** e **venda digital** (R$); **metas dos setores**: Salão em quantidade de vendas, Digital em conversões e Checkout em **ticket médio**; e **metas individuais por pessoa** em R$ para cada setor, com os níveis **Meta**, **Super** e **Diamante**.
 - No mês: meta mensal da loja, **bonificação** por nível (Meta, Super, Diamante) e **aumento percentual por setor** (registrado como referência).
 
+Filtros (TV com valores e tela de %):
+
+- **Semanal:** usa a semana do plano que contém a data (ex.: 01 a 08), escolhida em um seletor "1ª semana (01/11 a 08/11)". Sem plano para a data, vale segunda a domingo.
+- **Diário:** meta do dia = meta da semana do plano ÷ número de dias da semana (a 1ª e a 4ª semana de novembro têm 8 dias).
+- **Mensal:** meta mensal da loja; as metas de setor e individuais somam todas as semanas do mês.
+- **Período:** soma proporcional dos dias de cada semana do plano dentro das datas.
+- O bloco da meta mostra a meta do filtro escolhido (do dia, da semana ou do mês).
+
 Na tela de %:
 
 - A meta de cada filtro (Diário, Semanal, Mensal ou Período) é a soma das semanas do plano, proporcional aos dias de cada semana que caem no período. O ticket médio do Checkout é a média das semanas, ponderada pelos dias.
