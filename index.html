@@ -24,11 +24,8 @@
         window.addEventListener('error', function (e) {
           show('Ocorreu um erro ao carregar: ' + String((e && e.message) || 'arquivo n\u00e3o carregado').replace(/[<>&]/g, '') + '. Recarregue a p\u00e1gina; se continuar, atualize o navegador do aparelho.');
         }, true);
-        setTimeout(function () { show('O painel n\u00e3o carregou. Verifique a internet e recarregue a p\u00e1gina. Se continuar, o navegador deste aparelho pode estar desatualizado.'); }, 15000);
+        setTimeout(function () { show('O painel n\u00e3o carregou. Verifique a internet e recarregue a p\u00e1gina. Se continuar, o navegador deste aparelho pode estar desatualizado.'); }, 30000);
       })();
-    </script>
-    <script nomodule>
-      window.__gavShowError && window.__gavShowError('Este navegador \u00e9 antigo demais para o painel. Use um navegador atualizado (Chrome, Edge, Firefox ou Safari recentes) ou atualize o sistema da TV/aparelho.');
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
