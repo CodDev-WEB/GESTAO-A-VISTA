@@ -1,9 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import legacy from '@vitejs/plugin-legacy'
 
-// Alvo amplo: TVs, TV boxes e celulares com navegador antigo (Chromium 61+; Safari 12+ executa ES2017).
-// O padrão do Vite (Chrome 87+/Safari 14+) deixava esses aparelhos com a tela branca.
+// Dois pacotes:
+// - moderno (ES2020) para navegadores atuais;
+// - legado (ES5 + polyfills) carregado automaticamente por navegadores antigos,
+//   como os das smart TVs Multilaser com sistema Linux, TV boxes e celulares antigos.
 export default defineConfig({
-  plugins: [react()],
-  build: { target: ['es2017', 'chrome61', 'firefox60', 'edge79'], cssTarget: ['chrome61', 'safari12'] },
+  plugins: [
+    react(),
+    legacy({
+      targets: ['chrome >= 38', 'android >= 4.4', 'safari >= 9', 'ios >= 9', 'firefox >= 52', 'opera >= 25', 'samsung >= 4'],
+      modernPolyfills: true,
+      additionalLegacyPolyfills: ['whatwg-fetch', 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only'],
+    }),
+  ],
+  build: { cssTarget: ['chrome38', 'safari9'] },
 })

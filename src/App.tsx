@@ -432,7 +432,7 @@ function Dashboard({data,mode='values',admin=false}:{data:ReturnType<typeof useD
    </table>:<p className="tv-empty">Nenhuma colaboradora neste setor.</p>}
   </>
  }
- return <div className="tv">
+ return <div className={'tv'+(percent?'':' tv-has-split')+(mode==='values'&&data.recentSales.length>0?' tv-has-ticker':'')}>
   <header className="tv-header">
    <div className="tv-brand"><img className="tv-brand-logo" src={logoYupee} alt="Yupee Petstore"/><h1>{sectorsView?'Ranking por setor':percent?'Contribuição para a meta':'O resultado é de todos nós.'}</h1></div>
    <div className="tv-header-tools">
