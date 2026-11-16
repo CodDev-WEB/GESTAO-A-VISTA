@@ -25,7 +25,9 @@ const money = (n: number) => Number(n || 0).toLocaleString('pt-BR', { style: 'cu
 const when = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Belem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'
 const day = (iso: string | null) => iso ? iso.split('-').reverse().join('/') : '—'
 // Nomes como nas TVs: "GRASIELA  TAVARES" -> "Grasiela Tavares".
-const titleName = (n: string) => n.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR').replace(/(^|\s)(\p{L})/gu, (_m, a: string, b: string) => a + b.toLocaleUpperCase('pt-BR')).replace(/\b(Da|De|Do|Das|Dos|E)\b/g, w => w.toLowerCase())
+const lowerWords = new Set(['da', 'de', 'do', 'das', 'dos', 'e'])
+// Sem expressões regulares modernas: navegadores antigos de TV não entendem \p{L}.
+const titleName = (n: string) => n.trim().split(/\s+/).map((w, i) => { const l = w.toLocaleLowerCase('pt-BR'); return i > 0 && lowerWords.has(l) ? l : l.charAt(0).toLocaleUpperCase('pt-BR') + l.slice(1) }).join(' ')
 const sectorName = (s?: string | null) => s === 'salao' ? 'Salão' : s === 'digital' ? 'Digital' : s === 'checkout' ? 'Checkout' : 'Sem setor'
 const triggerName: Record<string, string> = { cron: 'Automática (5 min)', daily: 'Reprocessamento diário', manual: 'Manual', initial: 'Inicial', test: 'Teste de conexão', query: 'Consulta', mapping: 'Associação' }
 const statusName: Record<string, string> = { success: 'Sucesso', partial: 'Parcial', error: 'Erro', skipped: 'Ignorada', running: 'Em andamento' }

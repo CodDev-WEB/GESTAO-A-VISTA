@@ -312,7 +312,7 @@ function SalesTicker({sales}:{sales:RecentSale[]}){
  const item=(s:RecentSale,i:number,hidden:boolean)=><span className="tv-ticker-item" key={i} aria-hidden={hidden||undefined}><i aria-hidden="true"/><b>{displayName(s.name)}</b><strong>{exactMoney(s.value)}</strong><small>{saleTime(s.at)}</small></span>
  // Cada metade da faixa tem ao menos 6 itens (repetindo a lista) para cobrir a largura toda;
  // a faixa anda metade do próprio tamanho e recomeça sem salto.
- const half=Array.from({length:Math.ceil(6/sales.length)},()=>sales).flat()
+ const half:RecentSale[]=[];for(let k=0;k<Math.ceil(6/sales.length);k++)half.push(...sales) // sem .flat(): navegadores antigos de TV não têm
  return <footer className="tv-ticker" aria-label="Últimas vendas registradas">
   <span className="tv-ticker-label">Últimas vendas</span>
   <div className="tv-ticker-lane"><div className="tv-ticker-track" style={{animationDuration:half.length*7+'s'}}>{[...half,...half].map((s,i)=>item(s,i,i>=sales.length))}</div></div>
