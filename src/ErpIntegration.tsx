@@ -24,6 +24,8 @@ type TestResult = { ok: boolean; message: string; http_status?: number; duration
 const money = (n: number) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const when = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Belem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'
 const day = (iso: string | null) => iso ? iso.split('-').reverse().join('/') : '—'
+// Nomes como nas TVs: "GRASIELA  TAVARES" -> "Grasiela Tavares".
+const titleName = (n: string) => n.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR').replace(/(^|\s)(\p{L})/gu, (_m, a: string, b: string) => a + b.toLocaleUpperCase('pt-BR')).replace(/\b(Da|De|Do|Das|Dos|E)\b/g, w => w.toLowerCase())
 const sectorName = (s?: string | null) => s === 'salao' ? 'Salão' : s === 'digital' ? 'Digital' : s === 'checkout' ? 'Checkout' : 'Sem setor'
 const triggerName: Record<string, string> = { cron: 'Automática (5 min)', daily: 'Reprocessamento diário', manual: 'Manual', initial: 'Inicial', test: 'Teste de conexão', query: 'Consulta', mapping: 'Associação' }
 const statusName: Record<string, string> = { success: 'Sucesso', partial: 'Parcial', error: 'Erro', skipped: 'Ignorada', running: 'Em andamento' }
@@ -137,7 +139,7 @@ export default function ErpIntegration({ sellers, onPublished }: { sellers: Sell
     {rows && <div className="admin-panel">
       <div className="panel-head"><div><h2>Vendas no ERP · {day(start)} a {day(end)}</h2><p>Compare com o relatório oficial do Santarém Sistemas antes de ativar a publicação.</p></div></div>
       <div className="table-wrap"><table><thead><tr><th>DIA</th><th>CÓDIGO</th><th>FUNCIONÁRIO (ERP)</th><th>COLABORADORA</th><th>BRUTO</th><th>DESC. LÍQ.</th><th>CASHBACK</th><th>ACRÉSC.</th><th>LÍQUIDO</th><th>DEVOLUÇÃO</th><th>TOTAL</th><th>VENDAS</th><th>MÉDIO</th></tr></thead>
-        <tbody>{rows.length ? rows.map(r => <tr key={r.erp_employee_id + r.sale_date}><td>{day(r.sale_date)}</td><td>{r.erp_employee_id}</td><td>{r.erp_employee_name}</td><td>{r.seller_id ? sellerById.get(r.seller_id)?.full_name || 'Vinculada' : <span className="erp-pending-chip">Sem vínculo</span>}</td><td>{money(r.valtotalbruto)}</td><td>{money(r.valdescontoliquido)}</td><td>{money(r.valdescontocashback)}</td><td>{money(r.valacrescimo)}</td><td>{money(r.valtotalliquido)}</td><td>{money(r.valordevolucao)}</td><td className="money-cell">{money(r.valortotal)}</td><td>{r.quantidade_vendas}</td><td>{money(r.valor_medio_venda)}</td></tr>) : <tr><td colSpan={13} className="empty-state">Nenhuma venda no período.</td></tr>}</tbody>
+        <tbody>{rows.length ? rows.map(r => <tr key={r.erp_employee_id + r.sale_date}><td>{day(r.sale_date)}</td><td>{r.erp_employee_id}</td><td>{r.erp_employee_name}</td><td>{r.seller_id ? titleName(sellerById.get(r.seller_id)?.full_name || 'Vinculada') : <span className="erp-pending-chip">Sem vínculo</span>}</td><td>{money(r.valtotalbruto)}</td><td>{money(r.valdescontoliquido)}</td><td>{money(r.valdescontocashback)}</td><td>{money(r.valacrescimo)}</td><td>{money(r.valtotalliquido)}</td><td>{money(r.valordevolucao)}</td><td className="money-cell">{money(r.valortotal)}</td><td>{r.quantidade_vendas}</td><td>{money(r.valor_medio_venda)}</td></tr>) : <tr><td colSpan={13} className="empty-state">Nenhuma venda no período.</td></tr>}</tbody>
         {rows.length > 0 && <tfoot><tr><td colSpan={4}><b>Total</b></td>{(['valtotalbruto', 'valdescontoliquido', 'valdescontocashback', 'valacrescimo', 'valtotalliquido', 'valordevolucao', 'valortotal'] as const).map(k => <td key={k} className="money-cell">{money(rows.reduce((n, r) => n + Number(r[k]), 0))}</td>)}<td><b>{rows.reduce((n, r) => n + r.quantidade_vendas, 0)}</b></td><td /></tr></tfoot>}
       </table></div>
     </div>}
@@ -146,7 +148,7 @@ export default function ErpIntegration({ sellers, onPublished }: { sellers: Sell
       <div className="panel-head"><div><h2>Pendências · {pending.length}</h2><p>Funcionários do ERP com movimento e sem colaboradora associada. Eles não entram no ranking até serem associados.</p></div></div>
       {pending.length ? <div className="table-wrap"><table><thead><tr><th>CÓDIGO</th><th>NOME NO ERP</th><th>DIAS</th><th>PERÍODO</th><th>TOTAL</th><th>VENDAS</th><th>ASSOCIAR A</th><th /></tr></thead>
         <tbody>{pending.map(p => <tr key={p.erp_employee_id}><td>{p.erp_employee_id}</td><td>{p.erp_employee_name}</td><td>{p.days}</td><td>{day(p.first_date)} a {day(p.last_date)}</td><td className="money-cell">{money(p.valortotal)}</td><td>{p.quantidade_vendas}</td>
-          <td><select className="erp-select" aria-label={'Colaboradora para o código ' + p.erp_employee_id} value={choice[p.erp_employee_id] || ''} onChange={e => setChoice({ ...choice, [p.erp_employee_id]: e.target.value })}><option value="">Selecione</option>{activeSellers.map(s => <option key={s.id} value={s.id}>{s.full_name} · {sectorName(s.sector)}</option>)}</select></td>
+          <td><select className="erp-select" aria-label={'Colaboradora para o código ' + p.erp_employee_id} value={choice[p.erp_employee_id] || ''} onChange={e => setChoice({ ...choice, [p.erp_employee_id]: e.target.value })}><option value="">Selecione</option>{activeSellers.map(s => <option key={s.id} value={s.id}>{titleName(s.full_name)} · {sectorName(s.sector)}</option>)}</select></td>
           <td><button className="btn primary" disabled={!!busy || !choice[p.erp_employee_id]} onClick={() => void link(p.erp_employee_id, choice[p.erp_employee_id])}>Associar</button></td></tr>)}</tbody></table></div>
         : <p className="erp-muted">Nenhuma pendência.</p>}
     </div>
@@ -155,11 +157,11 @@ export default function ErpIntegration({ sellers, onPublished }: { sellers: Sell
       <div className="panel-head"><div><h2>Funcionários vinculados · {mappings.length}</h2><p>Associação feita pelo código do funcionário no ERP. O setor é o do cadastro da colaboradora e não muda na sincronização.</p></div></div>
       <form className="inline-form" onSubmit={submitManual}>
         <label>Código do funcionário no ERP<input inputMode="numeric" pattern="[0-9]+" value={manualCode} onChange={e => setManualCode(e.target.value.replace(/\D/g, ''))} placeholder="Ex.: 1234" required /></label>
-        <label>Colaboradora<select value={manualSeller} onChange={e => setManualSeller(e.target.value)} required><option value="">Selecione</option>{activeSellers.map(s => <option key={s.id} value={s.id}>{s.full_name} · {sectorName(s.sector)}</option>)}</select></label>
+        <label>Colaboradora<select value={manualSeller} onChange={e => setManualSeller(e.target.value)} required><option value="">Selecione</option>{activeSellers.map(s => <option key={s.id} value={s.id}>{titleName(s.full_name)} · {sectorName(s.sector)}</option>)}</select></label>
         <button className="btn primary" disabled={!!busy}>Associar funcionário</button>
       </form>
       {mappings.length > 0 && <div className="table-wrap erp-gap"><table><thead><tr><th>CÓDIGO</th><th>NOME NO ERP</th><th>COLABORADORA</th><th>SETOR</th><th /></tr></thead>
-        <tbody>{mappings.map(m => { const s = sellerById.get(m.seller_id); return <tr key={m.erp_employee_id}><td>{m.erp_employee_id}</td><td>{m.erp_employee_name || '—'}</td><td>{s?.full_name || 'Colaboradora removida'}</td><td>{sectorName(s?.sector)}</td><td><button className="btn secondary" disabled={!!busy} onClick={() => void unlink(m.erp_employee_id)}>Desvincular</button></td></tr> })}</tbody></table></div>}
+        <tbody>{mappings.map(m => { const s = sellerById.get(m.seller_id); return <tr key={m.erp_employee_id}><td>{m.erp_employee_id}</td><td>{m.erp_employee_name || '—'}</td><td>{s ? titleName(s.full_name) : 'Colaboradora removida'}</td><td>{sectorName(s?.sector)}</td><td><button className="btn secondary" disabled={!!busy} onClick={() => void unlink(m.erp_employee_id)}>Desvincular</button></td></tr> })}</tbody></table></div>}
     </div>
 
     <div className="admin-panel">

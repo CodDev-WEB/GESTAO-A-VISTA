@@ -80,3 +80,164 @@
 tfoot td{border-top:2px solid #edf0f2;font-size:11px}
 @media(max-width:1000px){.erp-settings>div{grid-template-columns:1fr}}
 .admin-content{min-width:0}
+
+/* ==========================================================================
+   Padrão visual das TVs aplicado ao login e ao admin
+   Paleta: branco, turquesa #6DCFD9 (texto #1D7480 / tinta #1D4650), amarelo #FFDE50, azul-marinho #172538.
+   Tipografia: Manrope (títulos e números) e DM Sans (texto).
+   ========================================================================== */
+:root{--tv-navy:#172538;--tv-muted:#586675;--tv-turquoise:#6DCFD9;--tv-turquoise-ink:#1D4650;--tv-turquoise-text:#1D7480;--tv-turquoise-soft:#EAF8FA;--tv-yellow:#FFDE50;--tv-yellow-soft:#FFF8D6;--line:#E3ECEF;--muted:#6B7886;--ink:#172538;color:var(--tv-navy);background:#F6FAFB}
+.admin-shell,.login-page{font-family:'DM Sans',system-ui,sans-serif;color:var(--tv-navy)}
+.admin-shell h1,.admin-shell h2,.admin-shell h3,.login-page h1,.login-page h2,.admin-shell strong,.login-page strong{font-family:Manrope,'DM Sans',system-ui,sans-serif}
+
+/* Marca */
+.brand{gap:14px}
+.brand-logo{height:46px;width:auto;flex:none;display:block}
+.brand strong{font:800 17px Manrope,system-ui,sans-serif;letter-spacing:-.3px;color:var(--tv-navy)}
+.brand strong span{color:var(--tv-turquoise-text);margin-left:0}
+.brand small{font-size:11px;font-weight:600;letter-spacing:0;color:var(--tv-muted);margin-top:2px}
+
+/* Barra lateral clara, como o cabeçalho da TV */
+.admin-shell{grid-template-columns:260px 1fr;background:#F6FAFB}
+.admin-sidebar{background:#fff;color:var(--tv-navy);border-right:1px solid var(--line);padding:26px 16px 20px}
+.admin-sidebar .brand{padding:0 8px 30px}
+.admin-sidebar .brand strong{color:var(--tv-navy)}
+.sidebar-label{font-size:11px;letter-spacing:.08em;color:#7C8B99;margin-bottom:10px}
+.admin-sidebar nav{gap:4px}
+.admin-sidebar nav button,.sidebar-bottom button{color:#3E5164;font-size:14px;font-weight:600;padding:11px 12px;border-radius:10px;gap:12px}
+.admin-sidebar nav button svg,.sidebar-bottom button svg{width:18px;height:18px;flex:none}
+.admin-sidebar nav button:hover,.sidebar-bottom button:hover{background:#F2F8F9;color:var(--tv-navy)}
+.admin-sidebar nav button.selected{background:var(--tv-turquoise-soft);color:var(--tv-turquoise-ink);font-weight:800;box-shadow:inset 4px 0 0 var(--tv-yellow)}
+.admin-sidebar nav button>svg:last-child{opacity:.35}
+.sidebar-bottom{border-top:1px solid var(--line)}
+.sidebar-bottom button{font-size:13px;color:#4E6073}
+
+/* Conteúdo */
+.admin-content{padding:32px clamp(20px,4vw,56px)}
+.admin-top{margin-bottom:26px}
+.eyebrow{font-size:11px;letter-spacing:.12em;color:var(--tv-turquoise-text)}
+.admin-top h1{font:800 32px Manrope,system-ui,sans-serif;letter-spacing:-.8px;color:var(--tv-navy)}
+.admin-user{font-size:11px;letter-spacing:.08em;color:var(--tv-muted)}
+.admin-online,.live-dot{background:var(--tv-turquoise);box-shadow:0 0 0 4px var(--tv-turquoise-soft)}
+
+/* Cartões e painéis */
+.admin-cards{gap:14px}
+.metric-card,.admin-panel,.admin-shortcuts button{border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 10px #17253808}
+.metric-card{padding:20px 22px;gap:8px}
+.metric-icon{width:38px;height:38px;border-radius:11px}
+.metric-icon svg{width:19px;height:19px}
+.metric-icon.blue,.metric-icon.purple{background:var(--tv-turquoise-soft);color:var(--tv-turquoise-text)}
+.metric-icon.gold{background:var(--tv-yellow-soft);color:#8A6A12}
+.metric-icon.green{background:#E9F5EE;color:#2F7A57}
+.metric-card>span{font-size:11px;letter-spacing:.08em;color:var(--tv-muted)}
+.metric-card>strong{font:800 clamp(24px,2.2vw,30px) Manrope,system-ui,sans-serif;color:var(--tv-navy)}
+.metric-card>small{font-size:13px;color:var(--tv-muted)}
+.admin-panel{padding:26px 28px;margin-bottom:16px}
+.admin-panel h2{font:800 20px Manrope,system-ui,sans-serif;color:var(--tv-navy);letter-spacing:-.3px}
+.admin-panel>p,.panel-head p{font-size:14px;color:var(--tv-muted);line-height:1.55}
+.admin-shortcuts button{padding:20px;color:var(--tv-turquoise-text);grid-template-columns:30px 1fr 16px}
+.admin-shortcuts button:hover{border-color:var(--tv-turquoise)}
+.admin-shortcuts button>strong{font-size:15px;color:var(--tv-navy)}
+.admin-shortcuts button>span{font-size:13px;color:var(--tv-muted)}
+
+/* Tabelas no estilo do ranking da TV */
+.table-wrap{border:1px solid var(--line);border-radius:14px}
+th{background:var(--tv-turquoise-soft);color:var(--tv-turquoise-ink);font-size:12px;letter-spacing:.02em;font-weight:800;padding:13px 16px;text-transform:none}
+td{font-size:14px;color:#3B4D60;padding:13px 16px;border-top:1px solid #EDF3F5}
+.money-cell{color:var(--tv-navy);font-weight:800}
+.rank-number{font:800 14px Manrope,system-ui,sans-serif;color:var(--tv-muted)}
+tbody tr:nth-child(-n+3) .rank-number{display:inline-grid;place-items:center;min-width:28px;height:24px;border-radius:7px;background:var(--tv-yellow);color:var(--tv-navy)}
+tfoot td{font-size:14px;border-top:2px solid var(--line)}
+.empty-state{font-size:14px}
+
+/* Formulários */
+.login-card label,.stack-form label,.inline-form label{font-size:13px;font-weight:700;color:#3E5164;gap:7px}
+.login-card input,.stack-form input,.stack-form select,.stack-form textarea,.inline-form input,.inline-form select,.plan-month input,.plan-week input,.erp-select,.erp-row input,.seller-list-item select{border:1px solid #D5E2E6;border-radius:10px;font-size:15px;color:var(--tv-navy);background:#fff}
+.login-card input,.stack-form input,.stack-form select,.stack-form textarea,.inline-form input,.inline-form select{padding:12px 14px}
+.login-card input:focus,.stack-form input:focus,.stack-form select:focus,.stack-form textarea:focus,.inline-form input:focus,.inline-form select:focus,.plan-month input:focus,.plan-week input:focus,.erp-select:focus,.erp-row input:focus{border-color:var(--tv-turquoise-text);box-shadow:0 0 0 3px #6DCFD940;outline:none}
+.format-hint{font-size:13px;line-height:1.7;color:#4E6073;background:var(--tv-turquoise-soft);border-radius:10px}
+.upload-zone{border:2px dashed #B9DDE3;background:#FAFDFE;border-radius:14px;color:var(--tv-turquoise-text)}
+.upload-zone:hover{border-color:var(--tv-turquoise)}
+.upload-zone strong{font-size:15px;color:var(--tv-navy)}
+.upload-zone span{font-size:13px;color:var(--tv-muted)}
+
+/* Botões: turquesa como os botões ativos da TV */
+.btn{border-radius:10px;padding:12px 18px;font-size:14px;font-weight:800;font-family:Manrope,'DM Sans',system-ui,sans-serif}
+.btn.primary{background:var(--tv-turquoise);color:var(--tv-navy)}
+.btn.primary:hover{background:#5CC6D1}
+.btn.secondary{background:#fff;color:var(--tv-navy);border:1px solid #D5E2E6}
+.btn.secondary:hover{border-color:var(--tv-turquoise);background:#F7FCFD}
+.btn:focus-visible,.admin-sidebar nav button:focus-visible{outline:3px solid var(--tv-turquoise-text);outline-offset:2px}
+
+/* Listas, selos e estrelas */
+.seller-list-item{padding:14px 0;gap:14px}
+.seller-list-item strong{font-size:15px;color:var(--tv-navy)}
+.seller-list-item small{font-size:12px;color:var(--tv-muted)}
+.seller-list-item select{font-size:13px;padding:8px 10px}
+.active-status,.inactive-status{font-size:11px;letter-spacing:.04em;padding:5px 10px}
+.active-status{background:var(--tv-turquoise-soft);color:var(--tv-turquoise-ink)}
+.star-picker button{border:1px solid #E7DFB8;border-radius:10px;padding:9px;color:#C9A400}
+.star-picker button.chosen{background:var(--tv-yellow);border-color:var(--tv-yellow);color:var(--tv-navy)}
+.star-picker svg{width:20px;height:20px}
+.stars-cell,.recognition-row .stars-cell{color:#D9B000}
+.recognition-row strong{font-size:15px;color:var(--tv-navy)}
+.recognition-row p{font-size:14px;color:#4E6073}
+.recognition-row small{font-size:12px;color:var(--tv-muted)}
+.success-message,.error-box{font-size:14px;border-radius:10px}
+.success-message{background:var(--tv-turquoise-soft);border-color:#C8EAEF;color:var(--tv-turquoise-ink)}
+
+/* Metas e bônus */
+.plan-week{background:#FBFDFD;border-color:var(--line);border-radius:14px}
+.plan-week legend{font-size:16px}
+.plan-group>strong{font-size:14px;color:var(--tv-turquoise-ink)}
+.plan-fields label,.plan-month,.plan-week-dates label{font-size:12px;color:#3E5164}
+.plan-total,.plan-week-dates span{font-size:14px}
+.bonus-tier{font-size:12px}
+
+/* Integrações */
+.erp-test{font-size:14px;border-radius:10px}
+.erp-test small{font-size:12px}
+.erp-settings strong{font-size:15px;color:var(--tv-navy)}
+.erp-settings small{font-size:13px}
+.erp-row,.erp-row label{font-size:13px}
+.erp-errors>div{font-size:13px}
+.erp-status{font-size:11px}
+.erp-pending-chip{font-size:11px}
+
+/* Login no padrão da TV */
+.login-page{background:#fff}
+.login-side{background:var(--tv-turquoise-soft);color:var(--tv-navy)}
+.login-side .brand strong{color:var(--tv-navy)}
+.login-message h1{color:var(--tv-navy);letter-spacing:-1.2px}
+.login-message h1 em{color:var(--tv-navy);background:linear-gradient(transparent 62%,var(--tv-yellow) 62%)}
+.login-message p{font-size:17px;color:var(--tv-muted)}
+.login-stat{color:var(--tv-turquoise-text)}
+.login-stat strong{font-size:15px;color:var(--tv-navy)}
+.login-stat small{font-size:13px;color:var(--tv-muted)}
+.login-foot{font-size:11px;letter-spacing:.1em;color:var(--tv-muted)}
+.form-icon{background:var(--tv-yellow-soft);color:var(--tv-navy)}
+.login-card h2{color:var(--tv-navy);font-size:32px}
+.login-card>p{font-size:15px;color:var(--tv-muted)}
+.back-link{font-size:13px;color:var(--tv-turquoise-text)}
+
+@media(max-width:1000px){.admin-shell{grid-template-columns:220px 1fr}}
+@media(max-width:680px){
+ .admin-shell{display:block}
+ .admin-sidebar{border-right:0;border-bottom:1px solid var(--line);padding:14px}
+ .admin-sidebar .brand{padding:0 4px 12px}
+ .brand-logo{height:38px}
+ .admin-sidebar nav button{font-size:13px;padding:9px 12px}
+ .admin-sidebar nav button.selected{box-shadow:inset 0 -3px 0 var(--tv-yellow)}
+ .admin-top h1{font-size:26px}
+ .metric-card>strong{font-size:22px}
+ .admin-panel{padding:18px}
+ .login-side{min-height:240px}
+}
+/* Colaboradoras: caixa "Participa das vendas" e botão de vínculo com o ranking legíveis */
+.admin-shell .seller-sales-toggle{font-size:13px!important;color:#3E5164!important;font-weight:700}
+.admin-shell .seller-sales-toggle input{width:18px!important;height:18px;accent-color:#1D7480}
+.admin-shell .sales-link-on,.admin-shell .sales-link-off{font-size:12px;padding:8px 12px;border-radius:999px}
+.admin-shell .sales-link-on{background:var(--tv-turquoise-soft);color:var(--tv-turquoise-ink)}
+.admin-shell .sales-link-on:hover{box-shadow:inset 0 0 0 1px var(--tv-turquoise)}
+.admin-sidebar .brand small{white-space:nowrap}
+.admin-shell .bonus-table th small{font-size:12px}
