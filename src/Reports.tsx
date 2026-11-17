@@ -280,7 +280,7 @@ export default function Reports({ sellers, sales, recognitions, goalWeeks }: { s
       <div className="panel-head"><div><h2>Detalhamento · {sorted.length} {sorted.length === 1 ? 'linha' : 'linhas'}</h2><p>Clique no título de uma coluna para ordenar. {group === 'seller' ? 'Meta individual pelo plano do período (Checkout: parte da meta da equipe; nível da equipe).' : group === 'sector' ? 'Meta do setor em R$ pelo plano (Salão e Digital: venda do setor; Checkout: meta da equipe).' : 'Meta da loja proporcional a cada período.'}</p></div></div>
       {erpError && showErp && <div className="error-box">{erpError}</div>}
       <div className="table-wrap"><table className="rep-table">
-        <thead><tr>{headers.map(([k, h]) => <th key={h} aria-sort={k && sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}><button type="button" className="rep-sort" onClick={() => sortBy(k)}>{h}{k && sort.key === k ? (sort.dir === 1 ? ' ↑' : ' ↓') : ''}</button></th>)}
+        <thead><tr>{headers.map(([k, h]) => <th key={h} className="rep-th-sort" aria-sort={k && sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}><button type="button" className="rep-sort" onClick={() => sortBy(k)}>{h}{k && sort.key === k ? (sort.dir === 1 ? ' ↑' : ' ↓') : ''}</button></th>)}
           {showErp && <><th>Bruto</th><th>Desc. líquido</th><th>Cashback</th><th>Acréscimo</th></>}</tr></thead>
         <tbody>{sorted.length ? sorted.map(r => <tr key={r.key}>
           <td><strong className="rep-name">{r.label}</strong>{r.sub && <small className="rep-sub">{r.sub}</small>}</td>
