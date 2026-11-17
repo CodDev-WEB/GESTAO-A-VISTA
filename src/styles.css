@@ -306,3 +306,4 @@ tfoot td{font-size:14px;border-top:2px solid var(--line)}
 .plan-erp strong{font-size:14px;color:var(--tv-navy)}
 .plan-erp span{font-size:13px;color:var(--tv-muted);line-height:1.5}
 .plan-erp .btn{display:inline-flex;align-items:center;gap:7px}
+.plan-fix{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 14px;padding:12px 14px;border-radius:10px;background:#FFF0EF;color:#7B3A35;font-size:14px}
