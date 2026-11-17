@@ -614,7 +614,15 @@ function Admin(){
   }catch(e){setParseError(e instanceof Error?e.message:'Não foi possível ler a planilha.')}
  }
  // Vendas do mês do plano: busca no ERP os dias que já passaram e inclui o mês nos rankings.
- const [erpFetching,setErpFetching]=useState(false)
+ const [erpFetching,setErpFetching]=useState(false),[planMonthFix,setPlanMonthFix]=useState<string|null>(null)
+ function savePlanAs(month:string){
+  // Leva as semanas digitadas para o mês certo (sem descartá-las) e salva.
+  const existing=data.goals.find(g=>g.month===month)
+  setGoalDirty(false)
+  setGoal(existing||{month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target})
+  setPlanWeeks(list=>list.map(w=>({...w,month})))
+  void savePlan(month)
+ }
  const monthSpan=(month:string,weeks:GoalWeek[])=>{
   const [ms,me]=dateRange('month',month)
   const start=weeks.reduce((m,w)=>w.start_date<m?w.start_date:m,ms),end=weeks.reduce((m,w)=>w.end_date>m?w.end_date:m,me)
@@ -649,26 +657,40 @@ function Admin(){
   const msg=await fetchMonthSales(goal.month,planWeeks)
   setMessage(msg.trim()||'Nada para buscar.')
  }
- async function savePlan(){
+ async function savePlan(monthOverride?:string){
+  const month=monthOverride||goal.month
+  setPlanMonthFix(null)
   if(!supabase)return
-  const weeks=planWeeks.map((w,i)=>({...w,week_number:i+1,month:goal.month}))
+  const weeks=planWeeks.map((w,i)=>({...w,week_number:i+1,month:month}))
   for(const [i,w] of weeks.entries()){
    if(!w.start_date||!w.end_date||w.end_date<w.start_date){setParseError('Semana '+(i+1)+': a data final precisa ser igual ou posterior à inicial.');return}
    if(i>0&&w.start_date<=weeks[i-1].end_date){setParseError('Semana '+(i+1)+': começa antes do fim da semana '+i+'. As semanas não podem se sobrepor.');return}
   }
+  // As semanas precisam ser do mês selecionado: evita gravar, por exemplo, as datas de outubro no plano de novembro.
+  if(weeks.length){
+   const byMonth=new Map<string,number>()
+   for(const w of weeks)for(let t=dayMs(w.start_date);t<=dayMs(w.end_date);t+=DAY_MS){const m=toISODate(new Date(t)).slice(0,7)+'-01';byMonth.set(m,(byMonth.get(m)||0)+1)}
+   const total=[...byMonth.values()].reduce((a,b)=>a+b,0),inMonth=byMonth.get(month)||0
+   if(inMonth*2<total){
+    const main=[...byMonth.entries()].sort((a,b)=>b[1]-a[1])[0][0]
+    setParseError('As semanas cadastradas são de '+monthLabel(main)+', mas o mês selecionado é '+monthLabel(month)+'. Para não substituir o plano de '+monthLabel(month)+', salve estas semanas como plano de '+monthLabel(main)+' (botão abaixo) ou corrija as datas.')
+    setPlanMonthFix(main)
+    return
+   }
+  }
   setPlanSaving(true);setParseError('');setMessage('')
   try{
    // Regrava o plano do mês inteiro: apaga as semanas do mês e insere a versão editada.
-   const {error:delError}=await supabase.from('goal_weeks').delete().eq('month',goal.month)
+   const {error:delError}=await supabase.from('goal_weeks').delete().eq('month',month)
    if(delError)throw delError
    if(weeks.length){const {error}=await supabase.from('goal_weeks').insert(weeks.map(({id:_id,...w})=>w));if(error)throw error}
    let goalMsg=''
    if(goalDirty){const goalError=await persistGoal();if(goalError)throw new Error('Semanas salvas, mas a meta do mês não: '+goalError);goalMsg=' Meta mensal e bônus também salvos.'}
    setPlanDirty(false);setGoalDirty(false)
-   const saved='Plano de metas de '+monthLabel(goal.month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.')+goalMsg
+   const saved='Plano de metas de '+monthLabel(month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.')+goalMsg
    setMessage(saved+' Buscando as vendas do mês no ERP...')
    await data.load()
-   setMessage(saved+(await fetchMonthSales(goal.month,weeks)))
+   setMessage(saved+(await fetchMonthSales(month,weeks)))
   }catch(e){setParseError((e instanceof Error?e.message:'Falha ao salvar o plano.')+' Se a tabela goal_weeks não existir, execute a migração supabase/migrations/20261112020000_goal_plan.sql.')}
   finally{setPlanSaving(false)}
  }
@@ -781,8 +803,9 @@ function Admin(){
    <div className="plan-week-dates"><label>Início<input type="date" value={w.start_date} onChange={e=>setWeekField(i,'start_date',e.target.value)} required/></label><label>Fim<input type="date" value={w.end_date} onChange={e=>setWeekField(i,'end_date',e.target.value)} required/></label><span>{w.start_date&&w.end_date&&w.end_date>=w.start_date?spanDays(w.start_date,w.end_date)+' dias':''}</span><button type="button" className="btn secondary" onClick={()=>{setPlanDirty(true);setPlanWeeks(list=>list.filter((_,j)=>j!==i))}}><X size={14}/> Remover semana</button></div>
    {planFieldGroups.map(([title,fields])=><div className="plan-group" key={title}><strong>{title}</strong><div className="plan-fields">{fields.map(([field,label])=><label key={field}>{label}<input type="number" min="0" step="0.01" value={w[field]} onChange={e=>setWeekField(i,field,e.target.value)}/></label>)}</div></div>)}
   </fieldset>)}
+  {planMonthFix&&<div className="plan-fix"><span>Estas semanas são de <b>{monthLabel(planMonthFix)}</b>.</span><button type="button" className="btn primary" disabled={planSaving} onClick={()=>savePlanAs(planMonthFix)}>Salvar como plano de {monthLabel(planMonthFix)}</button></div>}
   {(planDirty||goalDirty)&&<div className="plan-dirty" role="status">Alterações não salvas. Elas ficam na tela mesmo com a atualização automática; clique em "Salvar plano" para gravar.</div>}
-  <div className="plan-actions"><button type="button" className="btn secondary" onClick={()=>{setPlanDirty(true);setPlanWeeks(list=>[...list,newPlanWeek(list)])}}><Plus size={16}/> Adicionar semana</button><button type="button" className="btn primary" disabled={planSaving} onClick={savePlan}>{planSaving?'Salvando...':'Salvar plano'} <ChevronRight size={16}/></button>{planWeeks.length>0&&<span className="plan-total">Meta da loja somada: {money(planWeeks.reduce((n,w)=>n+Number(w.store_target||0),0))}</span>}</div>
+  <div className="plan-actions"><button type="button" className="btn secondary" onClick={()=>{setPlanDirty(true);setPlanWeeks(list=>[...list,newPlanWeek(list)])}}><Plus size={16}/> Adicionar semana</button><button type="button" className="btn primary" disabled={planSaving} onClick={()=>void savePlan()}>{planSaving?'Salvando...':'Salvar plano'} <ChevronRight size={16}/></button>{planWeeks.length>0&&<span className="plan-total">Meta da loja somada: {money(planWeeks.reduce((n,w)=>n+Number(w.store_target||0),0))}</span>}</div>
  </div>
  <div className="admin-panel">
   <h2>Bonificações · {monthLabel(goal.month)}</h2>
