@@ -108,6 +108,14 @@ A lista fica em `erp_integrations.recent_sales`. A TV lê pela função `erp_rec
 
 Migração: `supabase/migrations/20261113200000_erp_recent_sales.sql`.
 
+## Plano de metas de outro mês
+
+Ao salvar o plano de um mês em **Admin → Metas**, o sistema busca no ERP as vendas dos dias desse mês que já passaram (`POST /api/erp/sync` com `extend_publish: true`).
+
+- Se o mês começa antes do início da publicação, o início recua para o 1º dia do mês, para que essas vendas entrem nos rankings. A mudança aparece na mensagem e no histórico.
+- Dias futuros não são buscados. Eles entram pela sincronização automática, a cada 5 minutos.
+- Para repetir a busca, use o botão **Buscar vendas do ERP deste mês**. Ao lado dele, a tela mostra quantos dias do mês já têm vendas.
+
 ## Agendamento (fuso America/Belem)
 
 - **A cada 5 minutos:** ontem e hoje.

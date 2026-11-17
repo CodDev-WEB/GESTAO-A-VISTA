@@ -153,7 +153,20 @@ async function handleApi(request: Request, env: Env, path: string): Promise<Resp
     let range
     try { range = validateRange(body.start ?? todayIn(), body.end ?? body.start ?? todayIn()) } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : 'Período inválido.') }
     if (mode === 'query' && range.end > todayIn()) throw new HttpError(400, 'Período no futuro.')
+    // Dias futuros não têm vendas: a busca vai só até hoje.
+    if (range.end > todayIn()) range = { start: range.start, end: todayIn() }
+    if (range.start > range.end) return json({ status: 'skipped', message: 'O período ainda não começou: as vendas entram automaticamente conforme os dias acontecem.', range, requests: 0, pages: 0, received: 0, staged: 0, unmatched: 0, published: 0 })
+    // Plano cadastrado para um mês anterior ao início da publicação: recua o início para incluir esse mês nos rankings.
+    let extended: string | null = null
+    if (mode !== 'query' && body.extend_publish === true) {
+      const integration = await loadIntegration(db)
+      if (integration.publish_enabled && integration.publish_from && range.start < integration.publish_from) {
+        extended = integration.publish_from
+        await db.update('erp_integrations', `id=eq.${INTEGRATION_ID}`, { publish_from: range.start, updated_at: new Date().toISOString() })
+      }
+    }
     const result = await runSync(env, { trigger: mode as Trigger, range, requestedBy: user.id })
+    if (extended) result.message += ` Início da publicação no ranking ajustado de ${extended.split('-').reverse().join('/')} para ${range.start.split('-').reverse().join('/')}.`
     return json(result, result.status === 'error' ? 502 : 200)
   }
   if (path === '/api/erp/logs' && method === 'GET') {

@@ -299,3 +299,10 @@ tfoot td{font-size:14px;border-top:2px solid var(--line)}
 .plan-import-file:focus-within{outline:3px solid var(--tv-turquoise-text);outline-offset:2px}
 .plan-dirty{margin:0 0 14px;padding:11px 14px;border-radius:10px;background:var(--tv-yellow-soft);color:#6B5310;font-size:13px;font-weight:700}
 .error-box{white-space:pre-line}
+
+/* Metas: vendas do mês vindas do ERP */
+.plan-erp{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:-6px 0 18px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.plan-erp>div{display:flex;flex-direction:column;gap:3px;flex:1 1 280px}
+.plan-erp strong{font-size:14px;color:var(--tv-navy)}
+.plan-erp span{font-size:13px;color:var(--tv-muted);line-height:1.5}
+.plan-erp .btn{display:inline-flex;align-items:center;gap:7px}
