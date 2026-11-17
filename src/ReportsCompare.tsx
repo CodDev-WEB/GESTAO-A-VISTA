@@ -136,10 +136,10 @@ export default function ReportsCompare({ sales, goalWeeks, today, scope }: { sal
       <div className="cmp-chart" role="img" aria-label={`Faturamento por semana: ${monthLabel(monthA)} contra ${monthLabel(monthB)}`}>
         {rows.map(r => <div key={r.label} className="cmp-group">
           <div className="cmp-bars">
-            <i className="cmp-a" style={{ height: ((r.ta?.revenue || 0) / maxBar * 100) + '%' }} title={`${nameA} · ${r.label}: ${r.ta ? money(r.ta.revenue) : 'sem dados'}`}><em>{r.ta ? shortMoney(r.ta.revenue) : ''}</em></i>
-            <i className="cmp-b" style={{ height: ((r.tb?.revenue || 0) / maxBar * 100) + '%' }} title={`${nameB} · ${r.label}: ${r.tb ? money(r.tb.revenue) : 'sem dados'}`}><em>{r.tb ? shortMoney(r.tb.revenue) : ''}</em></i>
+            <i className={'cmp-a' + (r.ta ? '' : ' is-empty')} style={{ height: ((r.ta?.revenue || 0) / maxBar * 100) + '%' }} title={`${nameA} · ${r.label}: ${r.ta ? money(r.ta.revenue) : 'sem dados'}`}><em>{r.ta ? shortMoney(r.ta.revenue) : ''}</em></i>
+            <i className={'cmp-b' + (r.tb ? '' : ' is-empty')} style={{ height: ((r.tb?.revenue || 0) / maxBar * 100) + '%' }} title={`${nameB} · ${r.label}: ${r.tb ? money(r.tb.revenue) : 'sem dados'}`}><em>{r.tb ? shortMoney(r.tb.revenue) : ''}</em></i>
           </div>
-          <small>{r.label}{r.ta && r.tb ? <> · <Var a={r.ta.revenue} b={r.tb.revenue} /></> : null}</small>
+          <small><span>{r.label}</span>{r.ta && r.tb ? <Var a={r.ta.revenue} b={r.tb.revenue} /> : null}</small>
         </div>)}
       </div>
       <div className="cmp-legend"><span><i className="cmp-a" />{monthLabel(monthA)}</span><span><i className="cmp-b" />{monthLabel(monthB)}</span></div>
@@ -147,25 +147,25 @@ export default function ReportsCompare({ sales, goalWeeks, today, scope }: { sal
       <div className="table-wrap"><table className="rep-table cmp-table">
         <thead><tr><th>Semana</th><th>{nameA}</th><th>{nameB}</th><th>Diferença</th><th>Variação</th><th>Vendas {nameA} × {nameB}</th></tr></thead>
         <tbody>{rows.map(r => <tr key={r.label}>
-          <td><strong className="rep-name">{r.label}</strong>{r.partial && <small className="rep-sub">em andamento · mesmos {daysBetween(r.a!.start, r.a!.end)} dias</small>}</td>
-          <td>{r.ta ? <><b className="money-cell">{money(r.ta.revenue)}</b><small className="rep-sub">{range(r.a)}</small></> : r.a ? <small className="rep-sub">começa em {shortBr(r.a.start)}</small> : <small className="rep-sub">—</small>}</td>
-          <td>{r.tb ? <><b className="money-cell">{money(r.tb.revenue)}</b><small className="rep-sub">{range(r.b)}</small></> : r.b ? <small className="rep-sub">começa em {shortBr(r.b.start)}</small> : <small className="rep-sub">—</small>}</td>
-          <td>{r.ta && r.tb ? <span className={r.ta.revenue >= r.tb.revenue ? 'rep-hit' : 'cmp-neg'}>{diff(r.ta.revenue, r.tb.revenue)}</span> : '—'}</td>
-          <td>{r.ta && r.tb ? <Var a={r.ta.revenue} b={r.tb.revenue} /> : '—'}</td>
-          <td>{r.ta && r.tb ? <>{num(r.ta.count)} × {num(r.tb.count)} <Var a={r.ta.count} b={r.tb.count} /></> : '—'}</td>
+          <td data-label="Semana"><strong className="rep-name">{r.label}</strong>{r.partial && <small className="rep-sub">em andamento · mesmos {daysBetween(r.a!.start, r.a!.end)} dias</small>}</td>
+          <td data-label={nameA}>{r.ta ? <><b className="money-cell">{money(r.ta.revenue)}</b><small className="rep-sub">{range(r.a)}</small></> : r.a ? <small className="rep-sub">começa em {shortBr(r.a.start)}</small> : <small className="rep-sub">—</small>}</td>
+          <td data-label={nameB}>{r.tb ? <><b className="money-cell">{money(r.tb.revenue)}</b><small className="rep-sub">{range(r.b)}</small></> : r.b ? <small className="rep-sub">começa em {shortBr(r.b.start)}</small> : <small className="rep-sub">—</small>}</td>
+          <td data-label="Diferença">{r.ta && r.tb ? <span className={r.ta.revenue >= r.tb.revenue ? 'rep-hit' : 'cmp-neg'}>{diff(r.ta.revenue, r.tb.revenue)}</span> : '—'}</td>
+          <td data-label="Variação">{r.ta && r.tb ? <Var a={r.ta.revenue} b={r.tb.revenue} /> : '—'}</td>
+          <td data-label="Vendas">{r.ta && r.tb ? <>{num(r.ta.count)} × {num(r.tb.count)} <Var a={r.ta.count} b={r.tb.count} /></> : '—'}</td>
         </tr>)}</tbody>
-        <tfoot><tr><td><b>Mês</b>{mEq.partial && <small className="rep-sub">até o dia {mEq.a.end.slice(8, 10)} nos dois</small>}</td><td className="money-cell"><b>{money(totA.revenue)}</b></td><td className="money-cell"><b>{money(totB.revenue)}</b></td><td><b className={totA.revenue >= totB.revenue ? 'rep-hit' : 'cmp-neg'}>{diff(totA.revenue, totB.revenue)}</b></td><td><Var a={totA.revenue} b={totB.revenue} /></td><td>{num(totA.count)} × {num(totB.count)} <Var a={totA.count} b={totB.count} /></td></tr></tfoot>
+        <tfoot><tr><td data-label="Total"><b>Mês</b>{mEq.partial && <small className="rep-sub">até o dia {mEq.a.end.slice(8, 10)} nos dois</small>}</td><td data-label={nameA} className="money-cell"><b>{money(totA.revenue)}</b></td><td data-label={nameB} className="money-cell"><b>{money(totB.revenue)}</b></td><td data-label="Diferença"><b className={totA.revenue >= totB.revenue ? 'rep-hit' : 'cmp-neg'}>{diff(totA.revenue, totB.revenue)}</b></td><td data-label="Variação"><Var a={totA.revenue} b={totB.revenue} /></td><td data-label="Vendas">{num(totA.count)} × {num(totB.count)} <Var a={totA.count} b={totB.count} /></td></tr></tfoot>
       </table></div>
     </div>
 
     <div className="admin-panel">
       <div className="panel-head"><div><h2>Evolução mês a mês</h2><p>Cada mês contra o mês anterior.{same ? ' O mês em andamento é comparado com os mesmos dias do mês anterior.' : ''}</p></div></div>
-      <div className="table-wrap"><table className="rep-table">
+      <div className="table-wrap"><table className="rep-table cmp-table cmp-evo">
         <thead><tr><th>Mês</th><th>Faturamento</th><th>Vendas</th><th>Ticket médio</th><th>Mês anterior</th><th>Variação</th></tr></thead>
         <tbody>{evolution.map(e => <tr key={e.m}>
-          <td><strong className="rep-name">{monthLabel(e.m)}</strong>{e.partial && <small className="rep-sub">até o dia {e.until.slice(8, 10)}</small>}</td>
-          <td className="money-cell">{money(e.cur.revenue)}</td><td>{num(e.cur.count)}</td><td>{money(e.cur.count ? e.cur.gross / e.cur.count : 0)}</td>
-          <td>{e.prev.revenue ? money(e.prev.revenue) : '—'}</td><td><Var a={e.cur.revenue} b={e.prev.revenue} /></td>
+          <td data-label="Mês"><strong className="rep-name">{monthLabel(e.m)}</strong>{e.partial && <small className="rep-sub">até o dia {e.until.slice(8, 10)}</small>}</td>
+          <td data-label="Faturamento" className="money-cell">{money(e.cur.revenue)}</td><td data-label="Vendas">{num(e.cur.count)}</td><td data-label="Ticket médio">{money(e.cur.count ? e.cur.gross / e.cur.count : 0)}</td>
+          <td data-label="Mês anterior">{e.prev.revenue ? money(e.prev.revenue) : '—'}</td><td data-label="Variação"><Var a={e.cur.revenue} b={e.prev.revenue} /></td>
         </tr>)}</tbody>
       </table></div>
     </div>
