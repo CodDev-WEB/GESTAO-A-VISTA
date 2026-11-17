@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { ArrowDown, ArrowUp, Download, FileSpreadsheet, Printer, ShoppingBag, Star, Target, TrendingUp, Undo2 } from 'lucide-react'
 import { supabase } from './lib/supabase'
+import ReportsCompare from './ReportsCompare'
 
 type Sector = 'salao' | 'digital' | 'checkout'
 type Seller = { id: string; full_name: string; active: boolean; can_sell?: boolean; sector?: Sector | null }
@@ -66,6 +67,7 @@ type Row = { key: string; label: string; sub: string; sector: Sector | null; rev
 
 export default function Reports({ sellers, sales, recognitions, goalWeeks }: { sellers: Seller[]; sales: Sale[]; recognitions: Recognition[]; goalWeeks: GoalWeek[] }) {
   const t = todayIso()
+  const [view, setView] = useState<'period' | 'compare'>('period')
   const [preset, setPreset] = useState<PresetKey>('month')
   const [planWeek, setPlanWeek] = useState('')
   const [custom, setCustom] = useState<[string, string]>([t.slice(0, 8) + '01', t])
@@ -91,6 +93,7 @@ export default function Reports({ sellers, sales, recognitions, goalWeeks }: { s
     (sellerId === 'all' || s.id === sellerId)), [sellers, includeNonSellers, sector, sellerId])
   const ids = useMemo(() => new Set(included.map(s => s.id)), [included])
   const inRange = (s: Sale, a: string, b: string) => ids.has(s.seller_id) && s.sale_date >= a && s.sale_date <= b
+  const scopedSales = useMemo(() => sales.filter(s => ids.has(s.seller_id)), [sales, ids])
   const rows = useMemo(() => sales.filter(s => inRange(s, start, end)), [sales, ids, start, end]) // eslint-disable-line react-hooks/exhaustive-deps
   const prevRows = useMemo(() => sales.filter(s => inRange(s, prevStart, prevEnd)), [sales, ids, prevStart, prevEnd]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -226,23 +229,32 @@ export default function Reports({ sellers, sales, recognitions, goalWeeks }: { s
   const sortBy = (k: SortKey | null) => k && setSort(s => s.key === k ? { key: k, dir: (s.dir * -1) as 1 | -1 } : { key: k, dir: k === 'label' ? 1 : -1 })
   const sellerOptions = sellers.filter(s => (includeNonSellers || s.can_sell !== false) && (sector === 'all' || (sector === 'none' ? !s.sector : s.sector === sector))).sort((a, b) => a.full_name.localeCompare(b.full_name, 'pt-BR'))
 
+  const compare = view === 'compare'
+  const scope = sector === 'all' && sellerId === 'all' ? 'Loja toda.' : `Filtro: ${sellerId !== 'all' ? nameOf(sellerById.get(sellerId)?.full_name || '') : sector === 'none' ? 'sem setor' : sectorName(sector as Sector)}.`
+
   return <div className="reports">
+    <div className="rep-views" role="tablist" aria-label="Tipo de relatório">
+      <button type="button" role="tab" aria-selected={!compare} className={!compare ? 'active' : ''} onClick={() => setView('period')}>Período</button>
+      <button type="button" role="tab" aria-selected={compare} className={compare ? 'active' : ''} onClick={() => setView('compare')}>Comparativo de semanas e meses</button>
+    </div>
     <div className="admin-panel rep-filters">
-      <div className="panel-head"><div><h2>Filtros</h2><p>{br(start)} a {br(end)} · {span} {span === 1 ? 'dia' : 'dias'} · comparado com {br(prevStart)} a {br(prevEnd)}</p></div>
-        <div className="rep-actions"><button className="btn secondary" onClick={exportCsv} disabled={!sorted.length}><Download size={15} /> CSV</button><button className="btn secondary" onClick={exportXlsx} disabled={!sorted.length}><FileSpreadsheet size={15} /> Excel</button><button className="btn secondary" onClick={() => window.print()}><Printer size={15} /> Imprimir / PDF</button></div></div>
+      <div className="panel-head"><div><h2>Filtros</h2><p>{compare ? 'Setor e colaboradora valem para o comparativo abaixo.' : <>{br(start)} a {br(end)} · {span} {span === 1 ? 'dia' : 'dias'} · comparado com {br(prevStart)} a {br(prevEnd)}</>}</p></div>
+        {!compare && <div className="rep-actions"><button className="btn secondary" onClick={exportCsv} disabled={!sorted.length}><Download size={15} /> CSV</button><button className="btn secondary" onClick={exportXlsx} disabled={!sorted.length}><FileSpreadsheet size={15} /> Excel</button><button className="btn secondary" onClick={() => window.print()}><Printer size={15} /> Imprimir / PDF</button></div>}</div>
       <div className="rep-grid">
-        <label>Período<select value={preset} onChange={e => setPreset(e.target.value as PresetKey)}><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="week">Esta semana (seg. a dom.)</option><option value="plan-week">Semana do plano</option><option value="month">Este mês</option><option value="last-month">Mês anterior</option><option value="custom">Personalizado</option></select></label>
-        {preset === 'plan-week' && <label>Semana do plano<select value={planWeek || weeks.find(w => w.start_date <= t && w.end_date >= t)?.start_date || ''} onChange={e => setPlanWeek(e.target.value)}>{weeks.map(w => <option key={w.start_date} value={w.start_date}>{monthName(w.month || w.start_date)} · {w.week_number}ª ({shortBr(w.start_date)} a {shortBr(w.end_date)})</option>)}</select></label>}
-        {preset === 'custom' && <><label>De<input type="date" value={custom[0]} onChange={e => setCustom([e.target.value, custom[1]])} /></label><label>Até<input type="date" value={custom[1]} onChange={e => setCustom([custom[0], e.target.value])} /></label></>}
+        {!compare && <label>Período<select value={preset} onChange={e => setPreset(e.target.value as PresetKey)}><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="week">Esta semana (seg. a dom.)</option><option value="plan-week">Semana do plano</option><option value="month">Este mês</option><option value="last-month">Mês anterior</option><option value="custom">Personalizado</option></select></label>}
+        {!compare && preset === 'plan-week' && <label>Semana do plano<select value={planWeek || weeks.find(w => w.start_date <= t && w.end_date >= t)?.start_date || ''} onChange={e => setPlanWeek(e.target.value)}>{weeks.map(w => <option key={w.start_date} value={w.start_date}>{monthName(w.month || w.start_date)} · {w.week_number}ª ({shortBr(w.start_date)} a {shortBr(w.end_date)})</option>)}</select></label>}
+        {!compare && preset === 'custom' && <><label>De<input type="date" value={custom[0]} onChange={e => setCustom([e.target.value, custom[1]])} /></label><label>Até<input type="date" value={custom[1]} onChange={e => setCustom([custom[0], e.target.value])} /></label></>}
         <label>Setor<select value={sector} onChange={e => { setSector(e.target.value as typeof sector); setSellerId('all') }}><option value="all">Todos</option>{sectors.map(s => <option key={s} value={s}>{sectorName(s)}</option>)}<option value="none">Sem setor</option></select></label>
         <label>Colaboradora<select value={sellerId} onChange={e => setSellerId(e.target.value)}><option value="all">Todas</option>{sellerOptions.map(s => <option key={s.id} value={s.id}>{nameOf(s.full_name)}{s.active ? '' : ' (inativa)'}</option>)}</select></label>
-        <label>Agrupar por<select value={group} onChange={e => setGroup(e.target.value as GroupKey)}><option value="seller">Colaboradora</option><option value="sector">Setor</option><option value="day">Dia</option><option value="week">Semana</option><option value="month">Mês</option></select></label>
+        {!compare && <label>Agrupar por<select value={group} onChange={e => setGroup(e.target.value as GroupKey)}><option value="seller">Colaboradora</option><option value="sector">Setor</option><option value="day">Dia</option><option value="week">Semana</option><option value="month">Mês</option></select></label>}
       </div>
       <div className="rep-checks">
         <label><input type="checkbox" checked={includeNonSellers} onChange={e => setIncludeNonSellers(e.target.checked)} /> Incluir quem não participa das vendas (ex.: gerência)</label>
-        <label><input type="checkbox" checked={showErp} onChange={e => setShowErp(e.target.checked)} /> Mostrar detalhes do ERP (bruto, descontos, cashback, acréscimo)</label>
+        {!compare && <label><input type="checkbox" checked={showErp} onChange={e => setShowErp(e.target.checked)} /> Mostrar detalhes do ERP (bruto, descontos, cashback, acréscimo)</label>}
       </div>
     </div>
+
+    {compare ? <ReportsCompare sales={scopedSales} goalWeeks={weeks} today={t} scope={scope} /> : <>
 
     <div className="admin-cards rep-cards">
       <div className="metric-card"><div className="metric-icon blue"><TrendingUp /></div><span>FATURAMENTO</span><strong>{money(total.revenue)}</strong>{delta(total.revenue, prev.revenue)}</div>
@@ -282,6 +294,7 @@ export default function Reports({ sellers, sales, recognitions, goalWeeks }: { s
           {showErp && <>{erpTotal ? <><td><b>{money(erpTotal.bruto)}</b></td><td><b>{money(erpTotal.desc)}</b></td><td><b>{money(erpTotal.cash)}</b></td><td><b>{money(erpTotal.acres)}</b></td></> : <td colSpan={4} />}</>}</tr></tfoot>}
       </table></div>
     </div>
+    </>}
   </div>
 }
 
