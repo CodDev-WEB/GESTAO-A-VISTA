@@ -289,3 +289,13 @@ tfoot td{font-size:14px;border-top:2px solid var(--line)}
  .rep-grid select,.rep-grid input{border:0;padding:0;appearance:none;-webkit-appearance:none}
 }
 @media(max-width:900px){.rep-bar.is-minor small{display:none}.rep-chart{gap:2px}}
+
+/* Metas: importação da planilha e aviso de alterações não salvas */
+.plan-import{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:4px 0 18px;padding:14px 16px;background:var(--tv-turquoise-soft);border-radius:12px}
+.plan-import .btn{display:inline-flex;align-items:center;gap:7px}
+.plan-import span{flex:1 1 260px;font-size:13px;color:#4E6073;line-height:1.5}
+.plan-import-file{position:relative;cursor:pointer}
+.plan-import-file input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.plan-import-file:focus-within{outline:3px solid var(--tv-turquoise-text);outline-offset:2px}
+.plan-dirty{margin:0 0 14px;padding:11px 14px;border-radius:10px;background:var(--tv-yellow-soft);color:#6B5310;font-size:13px;font-weight:700}
+.error-box{white-space:pre-line}

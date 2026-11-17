@@ -7,11 +7,12 @@ import {
   Trophy, TrendingUp, ShoppingBag, Target, Star,
   Upload, Users, LogOut, LayoutDashboard, Plus, Monitor,
   RefreshCw, ChevronRight, ShieldCheck, AlertCircle, CheckCircle2,
-  ArrowUpRight, ImagePlus, X, Plug, BarChart3
+  ArrowUpRight, ImagePlus, X, Plug, BarChart3, Download, FileSpreadsheet
 } from 'lucide-react'
 import { supabase, hasSupabase } from './lib/supabase'
 import ErpIntegration from './ErpIntegration'
 import Reports from './Reports'
+import { downloadPlanWorkbook, parsePlanWorkbook } from './goalPlanSheet'
 import logoYupee from './assets/logo-yupee.png'
 
 type Sector = 'salao'|'digital'|'checkout'
@@ -556,9 +557,18 @@ function Admin(){
  const [goal,setGoal]=useState(defaultGoal)
  const [recSeller,setRecSeller]=useState(''),[recTitle,setRecTitle]=useState(''),[recDescription,setRecDescription]=useState(''),[recStars,setRecStars]=useState(1),[recKind,setRecKind]=useState('boas_praticas')
  const [photoSeller,setPhotoSeller]=useState('')
- useEffect(()=>{const existing=data.goals.find(g=>g.month===goal.month);if(existing)setGoal(existing)},[data.goals,goal.month])
+ // Alterações ainda não salvas: a recarga automática dos dados (a cada 60 s e ao voltar para a aba) não pode apagá-las.
+ const [goalDirty,setGoalDirty]=useState(false),[planDirty,setPlanDirty]=useState(false)
+ const editGoal=(g:Goal)=>{setGoal(g);setGoalDirty(true)}
+ useEffect(()=>{if(goalDirty)return;const existing=data.goals.find(g=>g.month===goal.month);if(existing)setGoal(existing)},[data.goals,goal.month,goalDirty])
  const [planWeeks,setPlanWeeks]=useState<GoalWeek[]>([]),[planSaving,setPlanSaving]=useState(false)
- useEffect(()=>{setPlanWeeks(data.goalWeeks.filter(w=>w.month===goal.month).sort((a,b)=>a.week_number-b.week_number))},[data.goalWeeks,goal.month])
+ useEffect(()=>{if(planDirty)return;setPlanWeeks(data.goalWeeks.filter(w=>w.month===goal.month).sort((a,b)=>a.week_number-b.week_number))},[data.goalWeeks,goal.month,planDirty])
+ useEffect(()=>{
+  if(!goalDirty&&!planDirty)return
+  const warn=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue=''}
+  window.addEventListener('beforeunload',warn)
+  return()=>window.removeEventListener('beforeunload',warn)
+ },[goalDirty,planDirty])
  const monthWeeks=useMemo(()=>data.goalWeeks.filter(w=>w.month===goal.month).sort((a,b)=>a.week_number-b.week_number),[data.goalWeeks,goal.month])
  // Bonificação por semana: nível alcançado pelo faturamento da pessoa nas datas da semana do plano.
  const bonusRows=useMemo(()=>{
@@ -579,7 +589,30 @@ function Admin(){
   for(const k of weekNumberFields)(week as Record<string,unknown>)[k]=prev?prev[k]:0
   return week
  }
- const setWeekField=(i:number,field:keyof GoalWeek,value:string)=>setPlanWeeks(list=>list.map((w,j)=>j===i?{...w,[field]:field==='start_date'||field==='end_date'?value:Number(value)}:w))
+ const setWeekField=(i:number,field:keyof GoalWeek,value:string)=>{setPlanDirty(true);setPlanWeeks(list=>list.map((w,j)=>j===i?{...w,[field]:field==='start_date'||field==='end_date'?value:Number(value)}:w))}
+ function downloadPlanTemplate(){
+  // Mês sem plano: usa o último plano salvo (ex.: novembro) como modelo para preencher.
+  const latest=[...new Set(data.goalWeeks.map(w=>w.month))].sort().pop()
+  const weeks=planWeeks.length?planWeeks:latest?data.goalWeeks.filter(w=>w.month===latest).sort((a,b)=>a.week_number-b.week_number):[]
+  const base=planWeeks.length?goal:{...(data.goals.find(g=>g.month===latest)||goal),month:goal.month}
+  downloadPlanWorkbook(base,weeks)
+ }
+ async function importPlanFile(file:File){
+  setParseError('');setMessage('')
+  try{
+   const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true})
+   const plan=parsePlanWorkbook(wb)
+   if((goalDirty||planDirty)&&!window.confirm('Há alterações não salvas. Substituir pelo conteúdo da planilha?'))return
+   const saved=data.goals.find(g=>g.month===plan.month)
+   const baseGoal:Goal=saved||{month:plan.month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target}
+   setGoal({...baseGoal,...plan.goal,month:plan.month})
+   setGoalDirty(Object.keys(plan.goal).length>0)
+   setPlanWeeks(plan.weeks as GoalWeek[])
+   setPlanDirty(true)
+   const replacing=data.goalWeeks.some(w=>w.month===plan.month)
+   setMessage('Planilha importada: '+plan.weeks.length+(plan.weeks.length===1?' semana':' semanas')+' de '+monthLabel(plan.month)+'. Confira os valores e clique em "Salvar plano"'+(replacing?' (o plano já salvo deste mês será substituído)':'')+'. Nada foi gravado ainda.'+(plan.warnings.length?' '+plan.warnings.join(' '):''))
+  }catch(e){setParseError(e instanceof Error?e.message:'Não foi possível ler a planilha.')}
+ }
  async function savePlan(){
   if(!supabase)return
   const weeks=planWeeks.map((w,i)=>({...w,week_number:i+1,month:goal.month}))
@@ -593,7 +626,10 @@ function Admin(){
    const {error:delError}=await supabase.from('goal_weeks').delete().eq('month',goal.month)
    if(delError)throw delError
    if(weeks.length){const {error}=await supabase.from('goal_weeks').insert(weeks.map(({id:_id,...w})=>w));if(error)throw error}
-   setMessage('Plano de metas de '+monthLabel(goal.month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.'))
+   let goalMsg=''
+   if(goalDirty){const goalError=await persistGoal();if(goalError)throw new Error('Semanas salvas, mas a meta do mês não: '+goalError);goalMsg=' Meta mensal e bônus também salvos.'}
+   setPlanDirty(false);setGoalDirty(false)
+   setMessage('Plano de metas de '+monthLabel(goal.month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.')+goalMsg)
    await data.load()
   }catch(e){setParseError((e instanceof Error?e.message:'Falha ao salvar o plano.')+' Se a tabela goal_weeks não existir, execute a migração supabase/migrations/20261112020000_goal_plan.sql.')}
   finally{setPlanSaving(false)}
@@ -673,12 +709,20 @@ function Admin(){
  async function addSeller(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('sellers').insert({full_name:sellerName,email:sellerEmail||null,can_sell:sellerCanSell,sector:sellerSector});if(error)setMessage(error.message);else{setSellerName('');setSellerEmail('');setSellerCanSell(true);setSellerSector('salao');setMessage('Colaboradora cadastrada com setor vinculado.');await data.load()}}
  async function toggleSellerSales(seller:Seller){if(!supabase)return;const next=seller.can_sell===false;const {error}=await supabase.from('sellers').update({can_sell:next}).eq('id',seller.id);if(error)setMessage(error.message);else{setMessage(next?'Colaboradora vinculada ao ranking de vendas.':'Colaboradora removida do ranking de vendas; continuará no ranking de boas ações.');await data.load()}}
  async function updateSellerSector(seller:Seller,sector:Sector){if(!supabase)return;const {error}=await supabase.from('sellers').update({sector}).eq('id',seller.id);if(error)setMessage(error.message);else{setMessage('Setor de '+seller.full_name+' atualizado para '+sectorLabel(sector)+'.');await data.load()}}
+ async function persistGoal():Promise<string|null>{
+  if(!supabase)return 'Supabase não configurado.'
+  const base={month:goal.month,monthly_target:goal.monthly_target,daily_target:goal.daily_target}
+  const full={...base,bonus_meta:goal.bonus_meta??70,bonus_super:goal.bonus_super??140,bonus_diamante:goal.bonus_diamante??250,growth_salao:goal.growth_salao??null,growth_digital:goal.growth_digital??null,growth_checkout:goal.growth_checkout??null}
+  let {error}=await supabase.from('goals').upsert(full,{onConflict:'month'})
+  if(error&&/bonus_|growth_/.test(error.message))({error}=await supabase.from('goals').upsert(base,{onConflict:'month'}))
+  return error?error.message:null
+ }
  async function saveGoal(e:FormEvent){e.preventDefault();if(!supabase)return
   const base={month:goal.month,monthly_target:goal.monthly_target,daily_target:goal.daily_target}
   const full={...base,bonus_meta:goal.bonus_meta??70,bonus_super:goal.bonus_super??140,bonus_diamante:goal.bonus_diamante??250,growth_salao:goal.growth_salao??null,growth_digital:goal.growth_digital??null,growth_checkout:goal.growth_checkout??null}
   let {error}=await supabase.from('goals').upsert(full,{onConflict:'month'})
-  if(error&&/bonus_|growth_/.test(error.message)){({error}=await supabase.from('goals').upsert(base,{onConflict:'month'}));if(!error){setMessage('Meta mensal salva. Para gravar bonificações e aumento por setor, execute a migração 20261112020000_goal_plan.sql.');await data.load();return}}
-  if(error)setParseError(error.message);else setMessage('Meta mensal salva.')
+  if(error&&/bonus_|growth_/.test(error.message)){({error}=await supabase.from('goals').upsert(base,{onConflict:'month'}));if(!error){setGoalDirty(false);setMessage('Meta mensal salva. Para gravar bonificações e aumento por setor, execute a migração 20261112020000_goal_plan.sql.');await data.load();return}}
+  if(error)setParseError(error.message);else{setMessage('Meta mensal salva.');setGoalDirty(false)}
   await data.load()}
  async function addRecognition(e:FormEvent){e.preventDefault();if(!supabase)return;const {error}=await supabase.from('recognitions').insert({seller_id:recSeller,stars:recStars,kind:recKind,title:recTitle,description:recDescription,recognized_at:today()});setMessage(error?.message||'Reconhecimento publicado no painel.');if(!error){setRecTitle('');setRecDescription('');setRecStars(1);await data.load()}}
  async function uploadPhoto(e:FormEvent){e.preventDefault();const el=document.getElementById('seller-photo') as HTMLInputElement;const f=el.files?.[0];if(!f||!supabase||!photoSeller)return;const path=photoSeller+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9.-]/g,'_');const {error}=await supabase.storage.from('seller-photos').upload(path,f,{upsert:true});if(error){setMessage(error.message);return}const {data:pub}=supabase.storage.from('seller-photos').getPublicUrl(path);const {error:e2}=await supabase.from('sellers').update({photo_url:pub.publicUrl}).eq('id',photoSeller);setMessage(e2?.message||'Foto atualizada.');await data.load()}
@@ -690,14 +734,16 @@ function Admin(){
  {tab==='goals'&&<>
  <div className="admin-panel">
   <div className="panel-head"><div><h2>Plano de meta comercial · {monthLabel(goal.month)}</h2><p>Cada semana tem datas próprias, como no plano impresso. A TV calcula as metas do filtro escolhido somando os dias de cada semana que caem no período.</p></div>
-   <label className="plan-month">Mês<input type="month" value={goal.month.slice(0,7)} onChange={e=>{const month=e.target.value+'-01';const existing=data.goals.find(g=>g.month===month);setGoal(existing||{month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target})}}/></label></div>
+   <label className="plan-month">Mês<input type="month" value={goal.month.slice(0,7)} onChange={e=>{if(!e.target.value)return;if((goalDirty||planDirty)&&!window.confirm('Há alterações não salvas no plano de '+monthLabel(goal.month)+'. Trocar de mês e descartá-las?'))return;const month=e.target.value+'-01';const existing=data.goals.find(g=>g.month===month);setGoalDirty(false);setPlanDirty(false);setGoal(existing||{month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target})}}/></label></div>
+  <div className="plan-import"><button type="button" className="btn secondary" onClick={downloadPlanTemplate}><Download size={16}/> Baixar planilha modelo</button><label className="btn secondary plan-import-file"><FileSpreadsheet size={16}/> Importar planilha<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void importPlanFile(f)}}/></label><span>Baixe o modelo com o plano {planWeeks.length?'deste mês':'do último mês cadastrado'}, ajuste no Excel e importe: as semanas, a meta mensal e os bônus preenchem a tela para conferência.</span></div>
   {planWeeks.length===0&&<p className="plan-empty">Nenhuma semana cadastrada para este mês. Adicione a primeira semana do plano.</p>}
   {planWeeks.map((w,i)=><fieldset className="plan-week" key={i}>
    <legend>{i+1}ª semana</legend>
-   <div className="plan-week-dates"><label>Início<input type="date" value={w.start_date} onChange={e=>setWeekField(i,'start_date',e.target.value)} required/></label><label>Fim<input type="date" value={w.end_date} onChange={e=>setWeekField(i,'end_date',e.target.value)} required/></label><span>{w.start_date&&w.end_date&&w.end_date>=w.start_date?spanDays(w.start_date,w.end_date)+' dias':''}</span><button type="button" className="btn secondary" onClick={()=>setPlanWeeks(list=>list.filter((_,j)=>j!==i))}><X size={14}/> Remover semana</button></div>
+   <div className="plan-week-dates"><label>Início<input type="date" value={w.start_date} onChange={e=>setWeekField(i,'start_date',e.target.value)} required/></label><label>Fim<input type="date" value={w.end_date} onChange={e=>setWeekField(i,'end_date',e.target.value)} required/></label><span>{w.start_date&&w.end_date&&w.end_date>=w.start_date?spanDays(w.start_date,w.end_date)+' dias':''}</span><button type="button" className="btn secondary" onClick={()=>{setPlanDirty(true);setPlanWeeks(list=>list.filter((_,j)=>j!==i))}}><X size={14}/> Remover semana</button></div>
    {planFieldGroups.map(([title,fields])=><div className="plan-group" key={title}><strong>{title}</strong><div className="plan-fields">{fields.map(([field,label])=><label key={field}>{label}<input type="number" min="0" step="0.01" value={w[field]} onChange={e=>setWeekField(i,field,e.target.value)}/></label>)}</div></div>)}
   </fieldset>)}
-  <div className="plan-actions"><button type="button" className="btn secondary" onClick={()=>setPlanWeeks(list=>[...list,newPlanWeek(list)])}><Plus size={16}/> Adicionar semana</button><button type="button" className="btn primary" disabled={planSaving} onClick={savePlan}>{planSaving?'Salvando...':'Salvar plano'} <ChevronRight size={16}/></button>{planWeeks.length>0&&<span className="plan-total">Meta da loja somada: {money(planWeeks.reduce((n,w)=>n+Number(w.store_target||0),0))}</span>}</div>
+  {(planDirty||goalDirty)&&<div className="plan-dirty" role="status">Alterações não salvas. Elas ficam na tela mesmo com a atualização automática; clique em "Salvar plano" para gravar.</div>}
+  <div className="plan-actions"><button type="button" className="btn secondary" onClick={()=>{setPlanDirty(true);setPlanWeeks(list=>[...list,newPlanWeek(list)])}}><Plus size={16}/> Adicionar semana</button><button type="button" className="btn primary" disabled={planSaving} onClick={savePlan}>{planSaving?'Salvando...':'Salvar plano'} <ChevronRight size={16}/></button>{planWeeks.length>0&&<span className="plan-total">Meta da loja somada: {money(planWeeks.reduce((n,w)=>n+Number(w.store_target||0),0))}</span>}</div>
  </div>
  <div className="admin-panel">
   <h2>Bonificações · {monthLabel(goal.month)}</h2>
@@ -705,10 +751,10 @@ function Admin(){
   {monthWeeks.length===0?<p className="plan-empty">Cadastre e salve o plano do mês para ver as bonificações.</p>:<div className="table-wrap"><table className="bonus-table"><thead><tr><th>Colaboradora</th><th>Setor</th>{monthWeeks.map(w=><th key={w.week_number}>{w.week_number}ª sem.<br/><small>{new Date(w.start_date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit'})} a {new Date(w.end_date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</small></th>)}<th>Total</th></tr></thead><tbody>{bonusRows.map(r=><tr key={r.seller.id}><td>{displayName(r.seller.full_name)}</td><td>{sectorName(r.sector)}</td>{r.weeks.map((w,i)=><td key={i} className={w.future?'bonus-future':''}>{w.future?'—':w.tier?<><span className={'bonus-tier '+w.tier}>{tierLabel(w.tier)}</span> {money(w.bonus)}{w.open&&<small> parcial</small>}</>:<span className="bonus-none">{w.open?'em andamento':'sem nível'}</span>}</td>)}<td className="money-cell">{money(r.total)}</td></tr>)}</tbody></table></div>}
  </div>
  <div className="admin-panel narrow-panel"><h2>Meta mensal, bonificações e aumento por setor</h2><p>Valores do mês selecionado acima.</p><form onSubmit={saveGoal} className="stack-form">
-  <label>Meta mensal da loja (R$)<input type="number" min="0" step="0.01" value={goal.monthly_target} onChange={e=>setGoal({...goal,monthly_target:Number(e.target.value)})} required/></label>
-  <label>Meta diária (R$)<input type="number" min="0" step="0.01" value={goal.daily_target} onChange={e=>setGoal({...goal,daily_target:Number(e.target.value)})} required/></label>
-  <div className="plan-fields"><label>Bônus Meta (R$)<input type="number" min="0" step="0.01" value={goal.bonus_meta??70} onChange={e=>setGoal({...goal,bonus_meta:Number(e.target.value)})}/></label><label>Bônus Super (R$)<input type="number" min="0" step="0.01" value={goal.bonus_super??140} onChange={e=>setGoal({...goal,bonus_super:Number(e.target.value)})}/></label><label>Bônus Diamante (R$)<input type="number" min="0" step="0.01" value={goal.bonus_diamante??250} onChange={e=>setGoal({...goal,bonus_diamante:Number(e.target.value)})}/></label></div>
-  <div className="plan-fields"><label>Aumento Salão (%)<input type="number" step="0.01" value={goal.growth_salao??''} onChange={e=>setGoal({...goal,growth_salao:e.target.value===''?null:Number(e.target.value)})}/></label><label>Aumento Digital (%)<input type="number" step="0.01" value={goal.growth_digital??''} onChange={e=>setGoal({...goal,growth_digital:e.target.value===''?null:Number(e.target.value)})}/></label><label>Aumento Checkout (%)<input type="number" step="0.01" value={goal.growth_checkout??''} onChange={e=>setGoal({...goal,growth_checkout:e.target.value===''?null:Number(e.target.value)})}/></label></div>
+  <label>Meta mensal da loja (R$)<input type="number" min="0" step="0.01" value={goal.monthly_target} onChange={e=>editGoal({...goal,monthly_target:Number(e.target.value)})} required/></label>
+  <label>Meta diária (R$)<input type="number" min="0" step="0.01" value={goal.daily_target} onChange={e=>editGoal({...goal,daily_target:Number(e.target.value)})} required/></label>
+  <div className="plan-fields"><label>Bônus Meta (R$)<input type="number" min="0" step="0.01" value={goal.bonus_meta??70} onChange={e=>editGoal({...goal,bonus_meta:Number(e.target.value)})}/></label><label>Bônus Super (R$)<input type="number" min="0" step="0.01" value={goal.bonus_super??140} onChange={e=>editGoal({...goal,bonus_super:Number(e.target.value)})}/></label><label>Bônus Diamante (R$)<input type="number" min="0" step="0.01" value={goal.bonus_diamante??250} onChange={e=>editGoal({...goal,bonus_diamante:Number(e.target.value)})}/></label></div>
+  <div className="plan-fields"><label>Aumento Salão (%)<input type="number" step="0.01" value={goal.growth_salao??''} onChange={e=>editGoal({...goal,growth_salao:e.target.value===''?null:Number(e.target.value)})}/></label><label>Aumento Digital (%)<input type="number" step="0.01" value={goal.growth_digital??''} onChange={e=>editGoal({...goal,growth_digital:e.target.value===''?null:Number(e.target.value)})}/></label><label>Aumento Checkout (%)<input type="number" step="0.01" value={goal.growth_checkout??''} onChange={e=>editGoal({...goal,growth_checkout:e.target.value===''?null:Number(e.target.value)})}/></label></div>
   <button className="btn primary">Salvar meta do mês <ChevronRight size={16}/></button></form></div>
 </>}
  {tab==='reports'&&<Reports sellers={data.sellers} sales={data.sales} recognitions={data.recognitions} goalWeeks={data.goalWeeks}/>}
