@@ -613,6 +613,42 @@ function Admin(){
    setMessage('Planilha importada: '+plan.weeks.length+(plan.weeks.length===1?' semana':' semanas')+' de '+monthLabel(plan.month)+'. Confira os valores e clique em "Salvar plano"'+(replacing?' (o plano já salvo deste mês será substituído)':'')+'. Nada foi gravado ainda.'+(plan.warnings.length?' '+plan.warnings.join(' '):''))
   }catch(e){setParseError(e instanceof Error?e.message:'Não foi possível ler a planilha.')}
  }
+ // Vendas do mês do plano: busca no ERP os dias que já passaram e inclui o mês nos rankings.
+ const [erpFetching,setErpFetching]=useState(false)
+ const monthSpan=(month:string,weeks:GoalWeek[])=>{
+  const [ms,me]=dateRange('month',month)
+  const start=weeks.reduce((m,w)=>w.start_date<m?w.start_date:m,ms),end=weeks.reduce((m,w)=>w.end_date>m?w.end_date:m,me)
+  return [start,end] as const
+ }
+ const monthSalesStatus=useMemo(()=>{
+  const [start,end]=monthSpan(goal.month,planWeeks),last=end<today()?end:today()
+  if(start>today())return {start,end,past:0,withSales:0}
+  const days=new Set(data.sales.filter(s=>s.sale_date>=start&&s.sale_date<=last&&Number(s.sales_count)>0).map(s=>s.sale_date))
+  return {start,end,past:spanDays(start,last),withSales:days.size}
+ },[goal.month,planWeeks,data.sales]) // eslint-disable-line react-hooks/exhaustive-deps
+ async function fetchMonthSales(month:string,weeks:GoalWeek[]):Promise<string>{
+  if(!supabase)return ''
+  const [start,end]=monthSpan(month,weeks)
+  if(start>today())return ' As vendas de '+monthLabel(month)+' entram sozinhas a cada 5 minutos, conforme os dias acontecerem.'
+  const session=(await supabase.auth.getSession()).data.session
+  if(!session)return ' Sessão expirada: entre de novo para buscar as vendas do ERP.'
+  setErpFetching(true)
+  try{
+   const res=await fetch('/api/erp/sync',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({mode:'manual',start,end:end<today()?end:today(),extend_publish:true})})
+   if(!(res.headers.get('content-type')||'').includes('application/json'))return ' A busca no ERP só funciona no site publicado.'
+   const r=await res.json() as {status?:string;message?:string}
+   await data.load()
+   if(r.status==='success')return ' Vendas de '+monthLabel(month)+' buscadas no ERP: '+(r.message||'')
+   if(r.status==='skipped')return ' Busca no ERP não feita agora: '+(r.message||'')
+   return ' A busca no ERP não terminou: '+(r.message||'erro desconhecido')+' Tente "Buscar vendas do ERP" de novo em alguns minutos.'
+  }catch(e){return ' A busca no ERP falhou: '+(e instanceof Error?e.message:'erro de rede')+'.'}
+  finally{setErpFetching(false)}
+ }
+ async function fetchMonthSalesNow(){
+  setParseError('');setMessage('Buscando no ERP as vendas de '+monthLabel(goal.month)+'...')
+  const msg=await fetchMonthSales(goal.month,planWeeks)
+  setMessage(msg.trim()||'Nada para buscar.')
+ }
  async function savePlan(){
   if(!supabase)return
   const weeks=planWeeks.map((w,i)=>({...w,week_number:i+1,month:goal.month}))
@@ -629,8 +665,10 @@ function Admin(){
    let goalMsg=''
    if(goalDirty){const goalError=await persistGoal();if(goalError)throw new Error('Semanas salvas, mas a meta do mês não: '+goalError);goalMsg=' Meta mensal e bônus também salvos.'}
    setPlanDirty(false);setGoalDirty(false)
-   setMessage('Plano de metas de '+monthLabel(goal.month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.')+goalMsg)
+   const saved='Plano de metas de '+monthLabel(goal.month)+' salvo com '+weeks.length+(weeks.length===1?' semana.':' semanas.')+goalMsg
+   setMessage(saved+' Buscando as vendas do mês no ERP...')
    await data.load()
+   setMessage(saved+(await fetchMonthSales(goal.month,weeks)))
   }catch(e){setParseError((e instanceof Error?e.message:'Falha ao salvar o plano.')+' Se a tabela goal_weeks não existir, execute a migração supabase/migrations/20261112020000_goal_plan.sql.')}
   finally{setPlanSaving(false)}
  }
@@ -736,6 +774,7 @@ function Admin(){
   <div className="panel-head"><div><h2>Plano de meta comercial · {monthLabel(goal.month)}</h2><p>Cada semana tem datas próprias, como no plano impresso. A TV calcula as metas do filtro escolhido somando os dias de cada semana que caem no período.</p></div>
    <label className="plan-month">Mês<input type="month" value={goal.month.slice(0,7)} onChange={e=>{if(!e.target.value)return;if((goalDirty||planDirty)&&!window.confirm('Há alterações não salvas no plano de '+monthLabel(goal.month)+'. Trocar de mês e descartá-las?'))return;const month=e.target.value+'-01';const existing=data.goals.find(g=>g.month===month);setGoalDirty(false);setPlanDirty(false);setGoal(existing||{month,monthly_target:defaultGoal.monthly_target,daily_target:defaultGoal.daily_target})}}/></label></div>
   <div className="plan-import"><button type="button" className="btn secondary" onClick={downloadPlanTemplate}><Download size={16}/> Baixar planilha modelo</button><label className="btn secondary plan-import-file"><FileSpreadsheet size={16}/> Importar planilha<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void importPlanFile(f)}}/></label><span>Baixe o modelo com o plano {planWeeks.length?'deste mês':'do último mês cadastrado'}, ajuste no Excel e importe: as semanas, a meta mensal e os bônus preenchem a tela para conferência.</span></div>
+  <div className="plan-erp" role="status"><div><strong>Vendas de {monthLabel(goal.month)}</strong><span>{monthSalesStatus.past===0?'O mês ainda não começou: as vendas entram sozinhas a cada 5 minutos.':monthSalesStatus.withSales+' de '+monthSalesStatus.past+(monthSalesStatus.past===1?' dia até hoje com vendas.':' dias até hoje com vendas.')+' Ao salvar o plano, os dias que já passaram são buscados no ERP.'}</span></div><button type="button" className="btn secondary" disabled={erpFetching||monthSalesStatus.past===0} onClick={fetchMonthSalesNow}><RefreshCw size={16}/> {erpFetching?'Buscando no ERP...':'Buscar vendas do ERP deste mês'}</button></div>
   {planWeeks.length===0&&<p className="plan-empty">Nenhuma semana cadastrada para este mês. Adicione a primeira semana do plano.</p>}
   {planWeeks.map((w,i)=><fieldset className="plan-week" key={i}>
    <legend>{i+1}ª semana</legend>
